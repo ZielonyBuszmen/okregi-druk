@@ -391,7 +391,16 @@ export function renderLabel(project, label, images = new Map(), dpi = project.dp
   return canvas;
 }
 
-export function renderSheet(project, layout, images, dpi = 105) {
+export function validateLabels(project, labels, images) {
+  const checked = new Set();
+  for (const label of labels) {
+    if (checked.has(label.key)) continue;
+    renderLabel(project, label, images, 72);
+    checked.add(label.key);
+  }
+}
+
+export function renderSheet(project, page, images, dpi = 105) {
   const canvas = document.createElement('canvas');
   const ppm = dpi / 25.4;
   canvas.width = Math.round(210 * ppm);
@@ -400,7 +409,7 @@ export function renderSheet(project, layout, images, dpi = 105) {
   ctx.fillStyle = 'white';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   const cache = new Map();
-  for (const item of layout.placements) {
+  for (const item of page.placements) {
     if (!cache.has(item.label.key))
       cache.set(item.label.key, renderLabel(project, item.label, images, Math.max(150, dpi)));
     ctx.drawImage(

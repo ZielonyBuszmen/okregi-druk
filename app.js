@@ -1,5 +1,11 @@
 import { parseProject, calculateLayout, fitColumns, resizeDiameter, projectKey } from './model.js';
-import { renderLabel, renderSheet, drawDecoration, loadImages } from './renderer.js';
+import {
+  renderLabel,
+  renderSheet,
+  validateLabels,
+  drawDecoration,
+  loadImages,
+} from './renderer.js';
 import { download, pngWithDpi, makePdf } from './export.js';
 import { loadSession, saveSession } from './storage.js';
 import { DECORATION_CHOICES } from './decorations.js';
@@ -14,6 +20,7 @@ let project,
   defaultConfig,
   currentPreview = null,
   selectedIndex = 0,
+  selectedPage = 0,
   view = 'label',
   generation = 0,
   previewTimer,
@@ -33,6 +40,7 @@ function persistSession() {
   if (!project) return;
   const ui = {
     selectedIndex,
+    selectedPage,
     view,
     rawInputs: Object.fromEntries(invalidInputValues),
     openSections: [...editor.querySelectorAll('details[id][open]')].map((section) => section.id),
@@ -46,6 +54,7 @@ function persistSession() {
 
 function restoreUiState(ui) {
   selectedIndex = ui.selectedIndex;
+  selectedPage = ui.selectedPage;
   view = ui.view;
   if (ui.openSections !== null) {
     for (const section of editor.querySelectorAll('details[id]')) {
@@ -79,6 +88,12 @@ function circles(count) {
     return `${count} koła`;
   }
   return `${count} kół`;
+}
+
+function pageCountText(count) {
+  if (count === 1) return '1 strona A4';
+  const few = [2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100);
+  return `${count} ${few ? 'strony' : 'stron'} A4`;
 }
 
 function byPath(object, path) {
@@ -276,14 +291,34 @@ function setCanvas(source) {
   target.setAttribute(
     'aria-label',
     view === 'sheet'
-      ? 'Podgląd całego arkusza A4'
+      ? `Podgląd strony ${selectedPage + 1} z ${currentPreview.layout.pages.length} · A4`
       : `Podgląd: ${currentPreview.layout.labels[selectedIndex].text.replaceAll('\n', ' ')}`,
   );
 }
 
 function displayPreview() {
   if (!currentPreview) return;
-  selectedIndex = Math.max(0, Math.min(selectedIndex, currentPreview.layout.labels.length - 1));
+  const { layout } = currentPreview;
+  selectedIndex = Math.max(0, Math.min(selectedIndex, layout.labels.length - 1));
+  selectedPage = Math.max(0, Math.min(selectedPage, layout.pages.length - 1));
+  if (view === 'label') selectedPage = layout.placements[selectedIndex].pageIndex;
+  else if (layout.placements[selectedIndex].pageIndex !== selectedPage)
+    selectedIndex = layout.pages[selectedPage].placements[0].index;
+  // Pamiętamy tylko aktualną kartkę, także przy projektach z setkami stron.
+  if (view === 'sheet' && currentPreview.sheetPage !== selectedPage) {
+    currentPreview.sheet = renderSheet(
+      currentPreview.project,
+      layout.pages[selectedPage],
+      currentPreview.images,
+    );
+    currentPreview.sheetPage = selectedPage;
+  }
+  getElement('#preview-select').value = selectedIndex;
+  getElement('#page-navigation').hidden = view !== 'sheet' || layout.pages.length === 1;
+  getElement('#page-counter').textContent = `Strona ${selectedPage + 1} z ${layout.pages.length}`;
+  getElement('#previous-page').disabled = selectedPage === 0;
+  getElement('#next-page').disabled = selectedPage === layout.pages.length - 1;
+  getElement('#view-sheet').textContent = layout.pages.length > 1 ? 'Strony A4' : 'Cała kartka A4';
   setCanvas(
     view === 'sheet'
       ? currentPreview.sheet
@@ -313,6 +348,8 @@ function invalidate() {
   getElement('#loading').hidden = false;
   getElement('#export-status').textContent = '';
   getElement('#auto-fix').hidden = true;
+  getElement('#previous-page').disabled = true;
+  getElement('#next-page').disabled = true;
   clearTimeout(previewTimer);
   previewTimer = setTimeout(updatePreview, 180);
   // Zapis jest synchroniczny: nie czeka na podgląd ani poprawność układu.
@@ -326,9 +363,16 @@ async function updatePreview() {
     const snapshot = structuredClone(project);
     const layout = calculateLayout(snapshot),
       images = await loadImages(snapshot);
-    const sheet = renderSheet(snapshot, layout, images);
+    validateLabels(snapshot, layout.labels, images);
     if (id !== generation) return;
-    currentPreview = { project: snapshot, key: projectKey(snapshot), layout, images, sheet };
+    currentPreview = {
+      project: snapshot,
+      key: projectKey(snapshot),
+      layout,
+      images,
+      sheet: null,
+      sheetPage: -1,
+    };
     selectedIndex = Math.min(selectedIndex, layout.labels.length - 1);
     getElement('#preview-select').replaceChildren(
       ...layout.labels.map((label, i) => {
@@ -345,7 +389,7 @@ async function updatePreview() {
     displayPreview();
     getElement('#diameter-label').textContent = `${Number(snapshot.diameterMm.toFixed(2))} mm`;
     getElement('#count-label').textContent =
-      `${circles(layout.labels.length)} · ${layout.columns} × ${layout.rows} · A4`;
+      `${circles(layout.labels.length)} · ${pageCountText(layout.pages.length)}`;
     getElement('#preview-error').hidden = true;
     getElement('#auto-fix').hidden = true;
     getElement('#preview-stage').classList.remove('invalid');
@@ -358,6 +402,7 @@ async function updatePreview() {
     getElement('#preview-error').textContent = error.message;
     getElement('#auto-fix').hidden = !canAutoFit(error, project);
     getElement('#preview-stage').classList.add('invalid');
+    getElement('#page-navigation').hidden = true;
     getElement('#approve').checked = false;
     getElement('#approve').disabled = true;
     getElement('#download-png').disabled = true;
@@ -371,6 +416,7 @@ function resetEditor() {
   invalidFields.clear();
   invalidInputValues.clear();
   selectedIndex = 0;
+  selectedPage = 0;
   syncFields();
   renderRows();
   invalidate();
@@ -499,6 +545,7 @@ getElement('#auto-fix').addEventListener('click', async () => {
 });
 getElement('#preview-select').addEventListener('change', (event) => {
   selectedIndex = Number(event.target.value);
+  if (currentPreview) selectedPage = currentPreview.layout.placements[selectedIndex].pageIndex;
   displayPreview();
   persistSession();
 });
@@ -512,6 +559,16 @@ getElement('#view-sheet').addEventListener('click', () => {
   displayPreview();
   persistSession();
 });
+function changePage(offset) {
+  if (!currentPreview) return;
+  const pages = currentPreview.layout.pages;
+  selectedPage = Math.max(0, Math.min(selectedPage + offset, pages.length - 1));
+  selectedIndex = pages[selectedPage].placements[0].index;
+  displayPreview();
+  persistSession();
+}
+getElement('#previous-page').addEventListener('click', () => changePage(-1));
+getElement('#next-page').addEventListener('click', () => changePage(1));
 editor.addEventListener('toggle', () => persistSession(), true);
 getElement('#approve').addEventListener('change', () => {
   getElement('#download-pdf').disabled = !getElement('#approve').checked || !currentPreview;
@@ -538,7 +595,7 @@ getElement('#import-file').addEventListener('change', async (event) => {
     const candidate = parseProject(JSON.parse(await file.text()));
     const layout = calculateLayout(candidate),
       images = await loadImages(candidate);
-    renderSheet(candidate, layout, images);
+    validateLabels(candidate, layout.labels, images);
     project = candidate;
     resetEditor();
     notice('Projekt został wczytany.');
