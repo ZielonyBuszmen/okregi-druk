@@ -2,6 +2,8 @@ import { parseProject, calculateLayout, fitColumns, resizeDiameter, projectKey }
 import { renderLabel, renderSheet, drawDecoration, loadImages } from './renderer.js';
 import { download, pngWithDpi, makePdf } from './export.js';
 import { loadSession, saveSession } from './storage.js';
+import { DECORATION_CHOICES } from './decorations.js';
+import { canAutoFit, autoFitProject } from './autofit.js';
 
 const getElement = (selector) => document.querySelector(selector);
 const editor = getElement('#editor');
@@ -117,10 +119,14 @@ function thumbnail(canvas, decoration) {
 }
 
 function renderRows() {
+  const openGalleries = new Set(
+    [...getElement('#text-rows').querySelectorAll('details[open]')].map((item) => item.id),
+  );
   getElement('#text-rows').replaceChildren();
   project.rows.forEach((row, index) => {
     const card = document.createElement('div');
     card.className = 'text-row';
+    card.dataset.patternIndex = index;
     card.innerHTML = `
       <div class="row-heading">
         <strong></strong>
@@ -137,6 +143,10 @@ function renderRows() {
         <div class="row-ornaments">
           <p class="field-label">Wybierz ozdobę</p>
           <div class="decoration-options" role="group" aria-label="Wybierz ozdobę"></div>
+          <details class="more-decorations">
+            <summary>Więcej ozdób wędkarskich (10)</summary>
+            <div class="decoration-options extra-decorations" role="group" aria-label="Wesołe ozdoby wędkarskie"></div>
+          </details>
           <button type="button" class="upload-control">Wybierz własny obraz</button>
           <input type="file" accept="image/png,image/jpeg,image/webp" hidden>
           <p class="custom-status" hidden></p>
@@ -157,11 +167,12 @@ function renderRows() {
     remove.disabled = project.rows.length === 1;
     remove.setAttribute('aria-label', `Usuń wzór ${index + 1}`);
     remove.addEventListener('click', () => removeRow(index));
-    for (const [kind, title] of [
-      ['none', 'Brak'],
-      ['coins', 'Monety'],
-      ['fishing', 'Wędki'],
-    ]) {
+    const gallery = card.querySelector('.more-decorations');
+    gallery.id = `ornaments-row-${index}`;
+    gallery.open =
+      openGalleries.has(gallery.id) ||
+      DECORATION_CHOICES.slice(3).some(({ id }) => id === row.decoration);
+    for (const [choiceIndex, { id: kind, title }] of DECORATION_CHOICES.entries()) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'decoration-choice';
@@ -174,10 +185,17 @@ function renderRows() {
       button.append(canvas, document.createTextNode(title));
       button.addEventListener('click', () => {
         row.decoration = kind;
-        renderRows();
+        for (const choice of card.querySelectorAll('.decoration-choice')) {
+          const selected = choice.dataset.decoration === kind;
+          choice.classList.toggle('active', selected);
+          choice.setAttribute('aria-pressed', String(selected));
+        }
+        card.querySelector('.custom-status').hidden = true;
         invalidate();
       });
-      card.querySelector('.decoration-options').append(button);
+      card
+        .querySelector(choiceIndex < 3 ? '.decoration-options' : '.extra-decorations')
+        .append(button);
     }
     const upload = card.querySelector('input[type=file]');
     card.querySelector('.upload-control').addEventListener('click', () => upload.click());
@@ -220,6 +238,17 @@ function renderRows() {
   });
 }
 
+function selectRow(index) {
+  if (project.mode !== 'text') return;
+  selectedIndex = project.rows.slice(0, index).reduce((count, row) => count + row.copies, 0);
+  view = 'label';
+  if (currentPreview && currentPreview.layout.labels[selectedIndex]?.key === `text-${index}`) {
+    getElement('#preview-select').value = selectedIndex;
+    displayPreview();
+  }
+  persistSession();
+}
+
 function removeRow(removedIndex) {
   project.rows.splice(removedIndex, 1);
   const pendingCopies = [...invalidInputValues].filter(([name]) => /^row-\d+$/.test(name));
@@ -235,6 +264,7 @@ function removeRow(removedIndex) {
     invalidInputValues.set(newName, value);
   }
   renderRows();
+  selectRow(Math.min(removedIndex, project.rows.length - 1));
   invalidate();
 }
 
@@ -282,6 +312,7 @@ function invalidate() {
   getElement('#download-pdf').disabled = true;
   getElement('#loading').hidden = false;
   getElement('#export-status').textContent = '';
+  getElement('#auto-fix').hidden = true;
   clearTimeout(previewTimer);
   previewTimer = setTimeout(updatePreview, 180);
   // Zapis jest synchroniczny: nie czeka na podgląd ani poprawność układu.
@@ -316,6 +347,7 @@ async function updatePreview() {
     getElement('#count-label').textContent =
       `${circles(layout.labels.length)} · ${layout.columns} × ${layout.rows} · A4`;
     getElement('#preview-error').hidden = true;
+    getElement('#auto-fix').hidden = true;
     getElement('#preview-stage').classList.remove('invalid');
     getElement('#approve').disabled = false;
     getElement('#download-png').disabled = false;
@@ -324,6 +356,7 @@ async function updatePreview() {
     currentPreview = null;
     getElement('#preview-error').hidden = false;
     getElement('#preview-error').textContent = error.message;
+    getElement('#auto-fix').hidden = !canAutoFit(error, project);
     getElement('#preview-stage').classList.add('invalid');
     getElement('#approve').checked = false;
     getElement('#approve').disabled = true;
@@ -344,6 +377,17 @@ function resetEditor() {
 }
 
 editor.addEventListener('submit', (event) => event.preventDefault());
+// Zachowaj wybór wzoru także przy klikaniu ozdób, wpisywaniu i nawigacji Tab.
+for (const eventName of ['click', 'focusin']) {
+  editor.addEventListener(
+    eventName,
+    (event) => {
+      const card = event.target.closest('[data-pattern-index]');
+      if (card) selectRow(Number(card.dataset.patternIndex));
+    },
+    true,
+  );
+}
 editor.addEventListener('input', (event) => {
   const input = event.target;
   if (input.dataset.rowField) {
@@ -358,6 +402,7 @@ editor.addEventListener('input', (event) => {
       invalidInputValues.delete(`row-${index}`);
       project.rows[index][key] = value;
     }
+    selectRow(index);
     invalidate();
     return;
   }
@@ -420,6 +465,7 @@ getElement('#add-row').addEventListener('click', () => {
   }
   project.rows.push({ text: 'TWÓJ\nTEKST', copies: 1, decoration: 'none', image: null });
   renderRows();
+  selectRow(project.rows.length - 1);
   invalidate();
 });
 getElement('#fit-columns').addEventListener('click', () => {
@@ -428,19 +474,28 @@ getElement('#fit-columns').addEventListener('click', () => {
   invalidFields.delete('layout.columns');
   invalidate();
 });
-getElement('#preset-roles').addEventListener('click', () => {
-  project = parseProject(defaultConfig);
-  project.mode = 'text';
-  project.rows = [
-    { text: 'PREZES', copies: 2, decoration: 'fishing', image: null },
-    { text: 'SKARBNIK\nKOŁA', copies: 2, decoration: 'coins', image: null },
-  ];
-  project.style.fontMm = (4.2 * project.diameterMm) / 37;
-  project.style.textOffsetY = (2 * project.diameterMm) / 37;
-  project.layout.columns = 2;
-  project.layout.gapX = project.layout.gapY = 4;
-  resetEditor();
-  notice('Wczytano wzory prezesa i skarbnika.');
+getElement('#auto-fix').addEventListener('click', async () => {
+  const button = getElement('#auto-fix');
+  const revision = generation;
+  button.disabled = true;
+  try {
+    const snapshot = structuredClone(project);
+    const images = await loadImages(snapshot);
+    if (revision !== generation) return;
+    project = autoFitProject(snapshot, images);
+    syncFields();
+    renderRows();
+    invalidate();
+    clearTimeout(previewTimer);
+    await updatePreview();
+    notice(
+      'Dopasowano projekt. Sprawdź podgląd. Średnica, napisy i liczba kół pozostały takie same.',
+    );
+  } catch (error) {
+    notice(error.message, true);
+  } finally {
+    button.disabled = false;
+  }
 });
 getElement('#preview-select').addEventListener('change', (event) => {
   selectedIndex = Number(event.target.value);
@@ -457,9 +512,7 @@ getElement('#view-sheet').addEventListener('click', () => {
   displayPreview();
   persistSession();
 });
-for (const section of editor.querySelectorAll('details[id]')) {
-  section.addEventListener('toggle', () => persistSession());
-}
+editor.addEventListener('toggle', () => persistSession(), true);
 getElement('#approve').addEventListener('change', () => {
   getElement('#download-pdf').disabled = !getElement('#approve').checked || !currentPreview;
 });

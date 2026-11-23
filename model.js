@@ -1,5 +1,16 @@
+import { DECORATION_CHOICES } from './decorations.js';
+
 export const PAGE = Object.freeze({ width: 210, height: 297 });
-export const DECORATIONS = ['none', 'coins', 'fishing', 'custom'];
+export const DECORATIONS = [...DECORATION_CHOICES.map(({ id }) => id), 'custom'];
+
+// Tylko błędy dopasowania mają bezpieczną korektę rozmiaru lub rozmieszczenia.
+export class FitError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.name = 'FitError';
+    this.code = code;
+  }
+}
 
 const STYLE_NUMBERS = [
   'fontMm',
@@ -116,14 +127,14 @@ export function validateProject(project) {
   }
   number(project.layout.columns, 'Kolumny', 1, 30, true);
   number(project.layout.margin, 'Margines (mm)', 0, 70);
-  number(project.layout.gapX, 'Odstęproject poziomy (mm)', 0, 30);
-  number(project.layout.gapY, 'Odstęproject pionowy (mm)', 0, 30);
+  number(project.layout.gapX, 'Odstęp poziomy (mm)', 0, 30);
+  number(project.layout.gapY, 'Odstęp pionowy (mm)', 0, 30);
   for (const key of ['color', 'accent'])
     if (!/^#[\da-f]{6}$/i.test(project.style[key])) throw new Error('Wybierz prawidłowy kolor.');
   for (const key of ['fontMm', 'ringFontMm', 'textRadiusMm', 'innerRadiusMm', 'decorationMm'])
     number(project.style[key], 'Rozmiar tekstu lub ozdoby (mm)', 0.1, 120);
   for (const key of ['borderMm', 'innerWidthMm', 'lineSpacingMm'])
-    number(project.style[key], 'Grubość lub odstęproject (mm)', 0, 20);
+    number(project.style[key], 'Grubość lub odstęp (mm)', 0, 20);
   for (const key of ['textOffsetY', 'decorationOffsetY'])
     number(project.style[key], 'Przesunięcie (mm)', -60, 60);
   number(project.style.rodsScale, 'Rozmiar wędek', 0.2, 4);
@@ -140,7 +151,10 @@ export function validateProject(project) {
     project.style.textRadiusMm + project.style.ringFontMm / 2 >=
     project.diameterMm / 2 - project.style.borderMm
   )
-    throw new Error('Napis na obwodzie wychodzi poza obwódkę. Zmniejsz jego rozmiar.');
+    throw new FitError(
+      'ring-bounds',
+      'Napis na obwodzie wychodzi poza obwódkę. Zmniejsz jego rozmiar.',
+    );
   if (labelCount(project) > 500) throw new Error('Jeden projekt może zawierać najwyżej 500 kół.');
   return project;
 }
@@ -187,7 +201,8 @@ export function calculateLayout(project) {
   const availableWidth = PAGE.width - 2 * project.layout.margin;
   const availableHeight = PAGE.height - 2 * project.layout.margin;
   if (width > availableWidth + 1e-7 || height > availableHeight + 1e-7) {
-    throw new Error(
+    throw new FitError(
+      'page-layout',
       `Układ ${Math.round(width)} × ${Math.round(height)} mm nie mieści się na A4. Zmień kolumny, odstępy lub liczbę kół. Średnica pozostaje ${project.diameterMm} mm.`,
     );
   }

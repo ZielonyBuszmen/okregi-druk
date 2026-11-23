@@ -1,3 +1,6 @@
+import { FitError } from './model.js';
+import { drawPlayfulDecoration } from './decorations.js';
+
 const FONT = 'LabelFont';
 const TAU = Math.PI * 2;
 const rad = (degrees) => (degrees * Math.PI) / 180;
@@ -155,14 +158,14 @@ export function drawDecoration(ctx, kind, { color, accent, rodsScale = 1.8 }) {
       ctx.stroke();
     }
     ctx.restore();
-  }
+  } else drawPlayfulDecoration(ctx, kind, { color, accent });
 }
 
-function ensureRectFits(x0, y0, x1, y1, center, radius, message) {
+function ensureRectFits(x0, y0, x1, y1, center, radius, message, code) {
   if (
     [x0, x1].some((x) => [y0, y1].some((y) => Math.hypot(x - center, y - center) > radius + 0.02))
   )
-    throw new Error(message);
+    throw new FitError(code, message);
 }
 
 function curvedText(ctx, text, radius, span, center, bottom, fontMm, color) {
@@ -175,7 +178,8 @@ function curvedText(ctx, text, radius, span, center, bottom, fontMm, color) {
   const tracking =
     chars.length > 1 ? (length - widths.reduce((a, b) => a + b, 0)) / (chars.length - 1) : 0;
   if (widths.reduce((a, b) => a + b, 0) > length + 0.01)
-    throw new Error(
+    throw new FitError(
+      'arc-text',
       `Napis „${text}” nie mieści się na łuku. Zmniejsz rozmiar liter lub zwiększ długość łuku.`,
     );
   let cursor = chars.length === 1 ? -widths[0] / 2 : -length / 2;
@@ -320,6 +324,7 @@ export function renderLabel(project, label, images = new Map(), dpi = project.dp
         center,
         style.innerRadiusMm,
         'Własny obraz nie mieści się w środku. Zmniejsz ozdobę lub zmień jej przesunięcie.',
+        'decoration',
       );
       ctx.drawImage(image, center - halfW, y - halfH, halfW * 2, halfH * 2);
     } else {
@@ -331,6 +336,7 @@ export function renderLabel(project, label, images = new Map(), dpi = project.dp
         center,
         style.innerRadiusMm,
         'Ozdoba wychodzi poza wewnętrzny łuk. Zmniejsz jej rozmiar lub przesuń ją bliżej środka.',
+        'decoration',
       );
       ctx.save();
       ctx.translate(center, y);
@@ -362,6 +368,7 @@ export function renderLabel(project, label, images = new Map(), dpi = project.dp
       center,
       style.innerRadiusMm - 0.1,
       `Tekst „${label.text.replaceAll('\n', ' ')}” nie mieści się w środku koła. Zmniejsz czcionkę lub dodaj nowy wiersz.`,
+      'center-text',
     );
     ctx.fillText(text, x, y);
   });
