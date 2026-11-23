@@ -1,0 +1,24 @@
+{
+  "name": "okregi-druk",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node tools/build-web.mjs",
+    "start": "node tools/serve-web.mjs",
+    "test": "node --test tests/web/*.test.mjs",
+    "test:browser": "node tests/web/browser.mjs && node tests/web/verify-exports.mjs",
+    "test:exports": "node tests/web/verify-exports.mjs",
+    "pack:web": "node tools/package-web.mjs",
+    "format": "prettier --write \"web/**/*.{html,css,js}\" \"tools/*.mjs\" \"tests/web/*.mjs\" config.json package.json .prettierrc.json",
+    "format:check": "prettier --check \"web/**/*.{html,css,js}\" \"tools/*.mjs\" \"tests/web/*.mjs\" config.json package.json .prettierrc.json"
+  },
+  "devDependencies": {
+    "fflate": "0.8.3",
+    "jspdf": "4.2.1",
+    "pdf-lib": "1.17.1",
+    "playwright": "1.56.1",
+    "pngjs": "7.0.0",
+    "prettier": "3.6.2"
+  }
+}

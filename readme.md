@@ -1,219 +1,174 @@
-# Numerowane okręgi do druku A4
+# Okręgi do druku A4
 
-Python 3.12, Pillow, ReportLab i Docker Compose. Bez interfejsu graficznego i serwera.
-Jeden renderer tworzy przezroczysty PNG etykiety; PDF osadza dokładnie tę samą bitmapę.
+Statyczna aplikacja w HTML, CSS i JavaScript, gotowa na GitHub Pages.
+Generowanie odbywa się w przeglądarce, bez konta i wysyłania obrazów.
 
-## Gdzie są pliki
+## Możliwości
 
-- [Aktualny podgląd PREZES](output/preview.png) — gotowy PNG do obejrzenia.
-- [PREZES](output/preview-prezes.png) i [SKARBNIK KOŁA](output/preview-skarbnik.png) — dwa wzory do zatwierdzenia.
-- [Przykładowa grafika tła](input/example.png) — obraz użyty w podglądzie.
-- `input/` — tutaj wrzucaj własne obrazki PNG, JPG lub WEBP.
-- `output/history/` — wcześniejsze podglądy i zapisane ustawienia.
-- [config.json](config.json) — aktualne parametry wyglądu i układu strony.
-- [POSTEP.md](POSTEP.md) — zapis wykonanej pracy i wyników testów.
-- [PLAN.md](PLAN.md) — dalsze kroki do zatwierdzenia i wydruku.
+- Napisy na górze i dole koła, średnica w mm.
+- Zakres numerów albo wiele własnych tekstów z liczbą kopii.
+- Monety, wędki z wieńcem lub własne obrazy PNG/JPG/WEBP do 2 MB.
+- Kolory, rozmiary, rozstaw liter, przesunięcia i rozmieszczenie na A4.
+- Podgląd koła i arkusza, eksport PNG oraz PDF po akceptacji podglądu.
+- Zapis i wczytywanie projektu JSON wraz z własnymi obrazami.
 
-Katalog projektu w WSL: `/sciezka/do/projektu`.
-Finalny PDF powstaje dopiero po zatwierdzeniu wyglądu.
+Interfejs używa dużych liter (18 px), wyraźnych obramowań i zwykłych przycisków.
+Na telefonie jest jeden układ kolumnowy i stałe przejście pomiędzy ustawieniami
+a podglądem. Dodatkowe ustawienia można rozwinąć, gdy są potrzebne.
 
-Aktualne ustawienia: odtworzony wzór ze zdjęcia, granatowe napisy „KOMOROWO”
-i „Koło PZW Nr-34”, boczny koszyczek i spławik, bez ryby.
-W środku zamiast numeru znajduje się „PREZES” lub „SKARBNIK” / „KOŁA” w dwóch wierszach.
-Średnica to 37 mm. Przygotowano po dwie identyczne kopie każdego wzoru,
-łącznie cztery etykiety w układzie 2 × 2, z odstępami 4 mm.
-Rozmiar czcionki środkowej wynosi 4,2 mm; tekst jest centrowany według widocznych znaków.
-PREZES jest ozdobiony skrzyżowanymi wędkami i złotym wieńcem, SKARBNIK KOŁA
-ma złote monety ze znakiem „zł”. Ozdoby powstają w tym samym rendererze co etykieta.
-Tryb `background_mode: "badge"` rysuje wzór bez pliku obrazka;
-`input/example.png` pozostaje zachowany. Po akceptacji wygenerowano
-[PDF PREZES × 2 i SKARBNIK KOŁA × 2](output/prezes-skarbnik-37mm.pdf).
+Podgląd, PNG i PDF korzystają ze wspólnego renderera Canvas.
+PNG ma przezroczyste narożniki i metadane 600 DPI. PDF zachowuje dokładną średnicę,
+ma jedną stronę 210 × 297 mm i preferencję drukowania 100%.
+Gdy układ lub tekst się nie mieści, program zgłasza błąd zamiast zmniejszać koła
+lub dodawać strony. Każda zmiana zeruje akceptację podglądu do PDF.
 
-## Start w WSL2 Ubuntu
+## Uruchomienie
 
-Wymagany Docker z działającą integracją WSL2 oraz `docker compose`.
-Wszystkie polecenia wykonuj w katalogu projektu.
+Wymagany Node.js 22.
 
 ```bash
-# Właściciel wyników ma być taki sam jak użytkownik WSL.
-export LOCAL_UID=$(id -u)
-export LOCAL_GID=$(id -g)
-
-docker compose build generator
-docker compose run --rm generator --help
-docker compose run --rm generator preview --help
-docker compose run --rm generator preview --config config.json --number 1
+npm run build
+npm start
 ```
 
-Obrazek demonstracyjny jest już w `input/example.png`. Można go odtworzyć
-(jeśli plik nie istnieje) poleceniem:
+Otwórz http://localhost:4173. Budowa i lokalny serwer używają wyłącznie
+standardowych modułów Node.js. Nie wymagają instalowania zależności.
+Nie otwieraj `index.html` przez `file://` — moduły i konfiguracja wymagają HTTP.
+
+`config.json` zawiera ustawienia początkowe w formacie projektu aplikacji
+(`version: 1`), takim samym jak pobierany przyciskiem „Zapisz projekt”.
+Budowa kopiuje go do `dist/config.json`. Ustawienia użytkownika zapisują się
+w localStorage; można je przenieść między przeglądarkami przez JSON.
+
+Zapis działa po każdej zmianie, także przy niekompletnym polu lub tekście,
+który jeszcze nie mieści się w kole. Po powrocie wracają napisy, liczby,
+obrazy, wybór podglądu i rozwinięte sekcje. Poprzednie zapisy aplikacji nadal
+się otwierają. Akceptacja PDF jest zawsze wyłączona po ponownym otwarciu.
+Brak miejsca lub dostępu do pamięci przeglądarki jest sygnalizowany na stronie.
+
+## Czytelny kod
+
+Kod własny jest sformatowany, a budowa kopiuje go bez minifikacji:
+
+- `web/app.js` — obsługa formularza i podglądu.
+- `web/model.js` — ustawienia, walidacja i układ kartki.
+- `web/renderer.js` — wspólne rysowanie koła do podglądu i eksportu.
+- `web/storage.js` — zapis i odtwarzanie ustawień w przeglądarce.
+- `web/export.js` — pobieranie plików PNG i PDF.
+
+Po zainstalowaniu zależności formatowanie uruchomisz przez `npm run format`,
+a jego sprawdzenie przez `npm run format:check`. Zewnętrzna biblioteka
+w `web/vendor/` jest wyłączona z formatowania.
+
+## Struktura projektu
+
+- `web/` — HTML, CSS, moduły JS i wspólny renderer.
+- `web/assets/` — lokalne czcionki DejaVu, ikona i licencja.
+- `web/vendor/` — lokalna biblioteka jsPDF 4.2.1 i licencja.
+- `tools/` — budowa, lokalny serwer i pakowanie ZIP w JavaScript.
+- `deploy.sh` — pełna budowa i wysłanie aplikacji na gałąź `gh-pages`.
+- `tests/web/` — testy modelu, Chromium i kontrola eksportów w JavaScript.
+- `dist/` — gotowe pliki statyczne tworzone przez budowę.
+- `input/` — zachowane obrazy użytkownika.
+- `output/` — zachowane eksporty, podglądy, historia i paczka ZIP.
+
+Opublikowana aplikacja nie wymaga Node.js. Czcionki i biblioteka PDF są lokalne;
+strona nie pobiera ich z CDN.
+
+## GitHub Pages
+
+Repozytorium: [ZielonyBuszmen/okregi-druk](https://github.com/ZielonyBuszmen/okregi-druk).
+Gałąź `master` zawiera źródła, a `gh-pages` wyłącznie gotową stronę.
+
+Do publikacji potrzebne są Bash, Git, Node.js 22 lub nowszy, npm oraz dostęp
+do zapisu w repozytorium `origin` (np. działający klucz SSH do GitHuba).
+Ustaw autora Git, najlepiej z publicznym adresem GitHub `noreply`.
+Przy pierwszym pobraniu projektu:
 
 ```bash
-docker compose run --rm --entrypoint python generator tools/create_example.py
+git clone git@github.com:ZielonyBuszmen/okregi-druk.git
+cd okregi-druk
 ```
 
-Wynik to `output/preview.png` — pojedynczy okrąg, z przezroczystością poza kołem.
-Otwórz go z WSL lub z Eksploratora Windows (`explorer.exe output`). Przy 30 mm
-i 600 DPI obraz ma 709 × 709 px. Zaokrąglenie do całych pikseli nie zmienia
-fizycznej średnicy 30 mm w PDF. Na ekranie rozmiar zależy od powiększenia przeglądarki.
-
-`input/` i `output/` są na dysku WSL i są bezpośrednio dostępne poza kontenerem.
-Cały projekt jest montowany w `/app`; zmiany kodu i konfiguracji nie wymagają
-przebudowy kontenera. Przebuduj obraz po zmianie zależności lub Dockerfile.
-Domyślne UID/GID to 1000:1000; dla innych użytkowników ustaw powyższe zmienne.
-
-## Współpraca i zatwierdzenie
-
-1. Wrzuć własne PNG/JPG/WEBP do `input/`.
-2. Poproś Codex np. „Zrób podgląd numeru 12, rozmycie 0,4 mm, rozjaśnienie bielą 40%, numer czarny”.
-3. Obejrzyj `output/preview.png`, następnie zgłaszaj poprawki.
-4. Napisz „Zatwierdzam, generuj PDF”, gdy wygląd będzie odpowiedni.
-
-Codex ma uruchamiać `pdf` **dopiero po wyraźnym zatwierdzeniu**.
-Samo uruchomienie polecenia `pdf` przez użytkownika oznacza zatwierdzenie ostatniego
-podglądu. Program nie uruchamia PDF po podglądzie. Dodatkowo sprawdza, czy aktualna
-konfiguracja, zawartość obrazka i czcionki odpowiadają zapisanemu podglądowi oraz
-czy PNG nie został zmieniony. Po zmianach trzeba ponownie utworzyć i obejrzeć podgląd.
-
-Po akceptacji:
+Po zapisaniu zmian w commicie na `master`:
 
 ```bash
-docker compose run --rm generator pdf --config config.json
+git push origin master
+./deploy.sh
 ```
 
-Przy aktualnych ustawieniach powstanie `output/prezes-skarbnik-37mm.pdf`
-i kopia użytej konfiguracji `output/prezes-skarbnik-37mm.json`.
-PDF ma jedną stronę 210 × 297 mm i etykiety o średnicy dokładnie 37 mm.
-W drukarce wybierz **100% / rzeczywisty rozmiar**, wyłącz „dopasuj do strony”.
-PDF zawiera również preferencję `PrintScaling=None`. Rzeczywista dokładność wydruku
-zależy od sterownika i drukarki — pierwszy arkusz warto zmierzyć linijką.
+Skrypt wymaga czystego katalogu roboczego na `master`. Instaluje zależności
+według pliku blokady, sprawdza formatowanie, uruchamia testy modelu i pamięci,
+usuwa starą budowę i odtwarza `dist/`. W osobnym katalogu tymczasowym tworzy
+commit zawartości `dist/` i wysyła go na `gh-pages`. Nie przełącza roboczej
+gałęzi, nie publikuje obrazów ani eksportów użytkownika i nie wymusza push.
+Zachowuje istniejący `CNAME`. Ponowne uruchomienie bez zmian w gotowej aplikacji
+nie tworzy dodatkowego commita. Błędy budowy lub dostępu do repozytorium
+przerywają publikację; przy odrzuconym push można uruchomić skrypt ponownie.
+Testy przeglądarki opisane niżej uruchamia się osobno.
 
-## Konfiguracja i CLI
+Jednorazowo na GitHubie ustaw:
 
-`config.json` zawiera komplet ustawień. Każde pole JSON ma odpowiednik CLI:
-podkreślenia zamień na myślniki, np. `image_offset_x` → `--image-offset-x`.
-Ścieżki w konfiguracji i opcjach CLI są względem katalogu pliku `--config`,
-a nie katalogu obrazka. Ścieżka samego `--config` jest względem bieżącego katalogu.
-Własny font umieść np. w `input/moj-font.ttf`.
+1. **Settings → Pages → Build and deployment**.
+2. **Source: Deploy from a branch**.
+3. **Branch: gh-pages**, folder **/(root)**, następnie **Save**.
+
+Jest to publikacja z gałęzi zgodna z
+[instrukcją GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#publishing-from-a-branch).
+Po zakończeniu publikacji strona będzie dostępna pod adresem
+[zielonybuszmen.github.io/okregi-druk/](https://zielonybuszmen.github.io/okregi-druk/).
+Kolejne aktualizacje wysyłaj tymi samymi dwiema komendami.
+
+## Podglądy i paczka
+
+Testy przeglądarki zapisują lokalne podglądy w `output/web-preview.png`,
+`output/web-preview-a4.png` i `output/web-preview-mobile.png`.
+Podglądy i ustawienia są archiwizowane w `output/history/`.
 
 ```bash
-docker compose run --rm generator preview --config config.json \
-  --image input/moj-obrazek.webp --number 12 \
-  --blur-mm 0.4 --washout 40 --saturation 0.6 --number-color black
-
-docker compose run --rm generator preview --config config.json \
-  --blur-mm 0.2 --font-size-mm 16 --number-outline-mm 0.15 \
-  --number-outline-color white --number-shadow
-
-docker compose run --rm generator preview --config config.json \
-  --image-fit contain --image-scale 1.15 --image-offset-y -1 \
-  --number-color auto --no-border-enabled --no-number-shadow
+npm ci --ignore-scripts
+npm run pack:web
 ```
 
-Udany podgląd zapisuje efektywne ustawienia do `config.json`. Kolejne wywołanie
-zaczyna od nich; podane opcje nadpisują tylko wskazane wartości. Błąd walidacji
-lub brak obrazka nie zmienia konfiguracji. `--output output/inny.png` zmienia
-`preview_output`; w poleceniu `pdf` zmienia `pdf_output`.
+Paczka powstaje w `output/okregi-aplikacja-web.zip`, zawiera zawartość `dist/`
+i wymaga hostingu HTTP, np. GitHub Pages.
+Pakowanie w JavaScript sprawdza zgodność zawartości archiwum z plikami budowy.
 
-| Pola konfiguracji | Znaczenie i jednostki |
-| --- | --- |
-| `background_mode` | `image`: grafika w tle; `badge`: napisy na łuku i symbole, pusty środek na numer |
-| `image`, `dpi`, `diameter_mm` | Plik PNG/JPG/WEBP, DPI (600), średnica w mm (30) |
-| `badge_top_text`, `badge_bottom_text`, `badge_color` | Treść napisów górnego i dolnego oraz wspólny kolor napisów, łuków i symboli |
-| `badge_font_size_mm`, `badge_text_radius_mm` | Rozmiar czcionki napisów i promień rozmieszczenia znaków, w mm; krój jak numer |
-| `badge_top_span_deg`, `badge_bottom_span_deg` | Długość łuków napisów w stopniach (0–180); za długi tekst zgłasza błąd |
-| `badge_inner_radius_mm`, `badge_inner_width_mm`, `badge_symbols` | Promień i grubość łuków wewnętrznych w mm oraz boczne symbole wędkarskie |
-| `blur_mm` | Promień Gaussa w mm, domyślnie 0 |
-| `washout` | Nałożenie bieli, 0–100%; przykład startowy: 40 |
-| `brightness`, `contrast`, `saturation` | Mnożniki ≥ 0; 1 = bez zmiany, saturation 0 = szarość |
-| `image_fit` | `cover` wypełnia i kadruje, `contain` mieści cały obraz |
-| `image_scale` | Dodatni mnożnik skali względem cover/contain; 1 = bazowy kadr |
-| `image_offset_x`, `image_offset_y` | Przesunięcia w mm; dodatnie w prawo / w dół |
-| `background_color` | Kolor pustych miejsc przy contain, oddaleniu lub przezroczystym obrazie |
-| `font_family` | DejaVuSans, DejaVuSerif lub DejaVuSansMono |
-| `font_weight` | `regular` lub `bold`; domyślnie pogrubiona bezszeryfowa |
-| `font_path` | Opcjonalny TTF/OTF; zawiera wybrany krój/grubość i zastępuje family/weight |
-| `font_size_mm`, `font_size_pt` | Rozmiar em czcionki, nie wysokość widocznego znaku; dokładnie jedno pole liczbowe, drugie `null` |
-| `center_labels` | Lista napisów w środku, w kolejności na arkuszu; powtórzony wpis oznacza identyczną kopię; `null` przywraca numerację |
-| `center_line_spacing_mm` | Odstęp między wierszami środkowego napisu w mm; `\n` w napisie rozdziela wiersze |
-| `center_decorations` | Lista ozdób dla kolejnych napisów: `fishing`, `coins`, `none`; `null` wyłącza ozdoby |
-| `decoration_size_mm`, `decoration_offset_y_mm` | Szerokość wzorca ozdoby w mm i jej przesunięcie od środka, dodatnie w dół |
-| `decoration_accent_color` | Kolor ozdób, obecnie złoty; obrysy używają `badge_color` |
-| `fishing_rods_scale` | Skala samych wędek, bez zmiany wieńca; aktualnie 1,8 |
-| `number_color` | Kolor CSS/hex lub `auto` (czerń/biel na podstawie tła pod cyframi) |
-| `number_outline_mm`, `number_outline_color` | Grubość i kolor obrysu cyfr; 0 wyłącza |
-| `number_shadow` | Cień włączany `--number-shadow`, wyłączany `--no-number-shadow` |
-| `shadow_color`, `shadow_opacity` | Kolor i krycie cienia 0–1 |
-| `shadow_blur_mm`, `shadow_offset_x_mm`, `shadow_offset_y_mm` | Rozmycie i przesunięcia cienia w mm |
-| `number_offset_x_mm`, `number_offset_y_mm` | Ręczna korekta optycznego położenia cyfr w mm |
-| `border_enabled`, `border_color`, `border_width_mm` | Obrys do cięcia, domyślnie czarny 0,2 mm; w całości wewnątrz średnicy |
-| `columns`, `rows` | Liczba kolumn i maksymalna liczba rzędów; domyślnie 5 × 7 |
-| `gap_x_mm`, `gap_y_mm` | Odstępy między krawędziami etykiet w mm, domyślnie 4 |
-| `margin_left_mm`, `margin_right_mm`, `margin_top_mm`, `margin_bottom_mm` | Minimalne marginesy w mm, domyślnie 10 |
-| `start_number`, `end_number` | Domknięty zakres numerów, domyślnie 1–33 |
-| `preview_number` | Numer podglądu, domyślnie 12; alias CLI `--number` |
-| `preview_output`, `pdf_output` | Ścieżki wynikowego PNG i PDF |
-
-`--font-size-mm` zeruje ustawienie punktowe, a `--font-size-pt` zeruje ustawienie
-w mm. Nie podawaj obu opcji naraz. W JSON ustaw drugą jednostkę na `null`.
-Kolory mogą mieć nazwy CSS lub format `#RRGGBB` (w powłoce otocz hex cudzysłowem).
-
-W trybie `center_labels` liczba etykiet wynika z listy, a `--number` wskazuje
-jej pozycję od 1. `start_number` i `end_number` dotyczą wtedy wyłącznie
-ustawień zachowanej numeracji. Przykład aktualnej listy w JSON:
-`["PREZES", "PREZES", "SKARBNIK\nKOŁA", "SKARBNIK\nKOŁA"]`.
-Lista jest dostępna w CLI przez `--center-labels '["PREZES","PREZES"]'`.
-Przywrócenie numeracji: `--center-labels null`. Za duży napis zgłasza błąd;
-program nie zmniejsza automatycznie tekstu ani etykiety.
-
-Kolejność efektów: kadr bez zmiany proporcji → rozmycie → nasycenie → kontrast →
-jasność → biała warstwa → cień / obrys cyfry / cyfra → obrys koła → przycięcie
-całej kompozycji maską kołową. Maska ma antyaliasing. Pozycja cyfr uwzględnia
-faktyczny obrys znaków i metryki czcionki, a nie jedynie szerokość tekstu
-czy pozycję linii bazowej. Ręczne przesunięcia pozwalają dopracować optykę własnego fontu.
-Zmniejszenie image_scale poniżej 1 lub przesunięcie obrazka może odsłonić kolor tła.
-Efekty obrazka dotyczą trybu `image`. Tryb `badge` zachowuje jednolite tło,
-rysuje napisy i symbole, a następnie ten sam numer, obrys i maskę kołową.
-
-Siatka jest wyśrodkowana w obszarze ograniczonym marginesami. Przy równych
-marginesach jej środek pokrywa się ze środkiem kartki. Domyślnie zajmuje
-166 × 234 mm, zaczyna się w (22; 31,5) mm. Ostatni rząd 31–33 ma środki
-w x = 71, 105 i 139 mm. Każdy niepełny ostatni rząd jest centrowany.
-Wykorzystywane są tylko potrzebne rzędy; `rows` jest ograniczeniem pojemności.
-Układ jest sprawdzany również przed podglądem. Program zgłasza błąd zamiast
-zmniejszać etykiety lub dodawać strony.
-
-## Historia ustawień
-
-Każdy udany podgląd zapisuje `output/preview.png`, manifest `output/preview.json`
-oraz parę `output/history/<czas UTC>.png` / `.json`. Manifest zawiera pełną
-konfigurację i sumy kontrolne, więc poprzednie wersje można obejrzeć i odtworzyć.
-Pliki JSON historii nie są samodzielnymi plikami konfiguracji; użyj `--restore`:
-
-```bash
-docker compose run --rm generator preview --config config.json \
-  --restore output/history/20261123T120000_000000Z.json
-```
-
-Zastąp nazwę pliku rzeczywistą nazwą z katalogu historii. Ścieżka `--restore`
-jest względem bieżącego katalogu. Możesz dodać kolejne opcje nadpisujące
-przywrócone ustawienia. Przechowuj też oryginalne obrazy i fonty — historia
-nie archiwizuje ich zawartości. Aby zachować wariant w osobnym pliku konfiguracji,
-skopiuj `config.json` w to samo miejsce pod inną nazwą.
+Obrazy użytkownika (`input/`), eksporty i historia (`output/`), zależności,
+budowa oraz wyniki testów są ignorowane przez Git. Do repozytorium trafiają
+źródła, publiczne ustawienia startowe i plik blokady zależności.
+Lokalne pliki `.env`, konfiguracje poświadczeń i klucze również są ignorowane.
 
 ## Testy
 
 ```bash
-docker compose run --rm --entrypoint python generator -m pytest -q -p no:cacheprovider
+npm ci --ignore-scripts
+npm test
+npm run build
 ```
 
-Testy sprawdzają geometrię i centrowanie siatki 1–33, metryki cyfr 1–33,
-proporcje cover/contain, przezroczystość poza kołem, łączenie efektów i nadpisania
-CLI, historię, błędne ścieżki/parametry oraz blokadę PDF po zmianie ustawień.
-Testy PDF weryfikują jedną stronę A4, macierze osadzania 30 mm i identyczność
-RGB oraz maski alfa etykiety 12 z rendererem podglądu. PDF-y testowe powstają
-wyłącznie w katalogach tymczasowych pytest (wewnątrz kontenera), poza `output/`.
+Testy przeglądarki korzystają z gotowego obrazu Chromium. Nie ma własnej
+konfiguracji Docker Compose ani obrazu serwera aplikacji:
 
-Dokumentacja bibliotek: [Pillow — ImageDraw](https://pillow.readthedocs.io/en/stable/reference/ImageDraw.html),
-[Pillow — GaussianBlur](https://pillow.readthedocs.io/en/stable/reference/ImageFilter.html),
-[ReportLab — pdfgen](https://docs.reportlab.com/reportlab/userguide/ch2_graphics/).
+```bash
+mkdir -p /tmp/okregi-web-tests
+docker run --rm --network none --user "$(id -u):$(id -g)" \
+  -v "$PWD:/app" -v /tmp/okregi-web-tests:/artifacts -w /app \
+  -e OKREGI_TEST_ARTIFACTS=/artifacts \
+  mcr.microsoft.com/playwright:v1.56.1-noble npm run test:browser
+```
+
+`test:browser` uruchamia testy interfejsu i kontrolę PDF/PNG.
+Do osobnego sprawdzenia już wygenerowanych eksportów służy `npm run test:exports`;
+domyślny katalog plików to `/tmp/okregi-web-tests`, nadpisywany zmienną
+`OKREGI_TEST_ARTIFACTS`.
+
+Testy obejmują oba tryby edycji, zmianę średnicy, własne obrazy, obsługę klawiaturą,
+dodawanie/usuwanie wzoru, zapis/wczytanie, ponowną akceptację po zmianach,
+ekran telefonu i ścieżkę projektu GitHub Pages.
+Sprawdzają również zamknięcie i ponowne otwarcie karty, przywracanie własnych
+obrazów, pustych pól, widoku A4 i otwartych sekcji oraz brak przewijania
+poziomego na ekranach 1366, 390 i 320 pikseli.
+Kontrola eksportów sprawdza format A4, liczbę kół, średnice 37 i 40 mm,
+identyczność kopii, piksele RGB i maskę alfa między PNG i PDF oraz DPI PNG.
+PDF-y testowe powstają wyłącznie w katalogu tymczasowym, poza `output/`.

@@ -1,9 +1,0 @@
-.git
-.agents
-.aws
-.codex
-.venv
-.pytest_cache
-**/__pycache__
-input
-output

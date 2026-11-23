@@ -1,9 +1,56 @@
-__pycache__/
-.pytest_cache/
-.venv/
-*.pyc
-output/*
-!output/.gitkeep
-input/*
-!input/.gitkeep
-!input/example.png
+# Zależności oraz wynik budowy.
+/node_modules/
+/dist/
+/build/
+
+# Obrazy użytkownika, eksporty, historia i paczki do pobrania.
+/input/
+/output/
+/artifacts/
+/tmp/
+/temp/
+
+# Wyniki testów i narzędzi.
+/coverage/
+/.nyc_output/
+/playwright-report/
+/test-results/
+/blob-report/
+/.cache/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Lokalne ustawienia i poświadczenia.
+.env
+.env.*
+!.env.example
+.npmrc
+/.aws/
+/.ssh/
+/.codex/
+/.agents/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.kdbx
+id_rsa
+id_ed25519
+
+# Pliki edytorów, kopie robocze i metadane systemu.
+/.idea/
+/.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*.orig
+*.rej
+*.bak
+*~
