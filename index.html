@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Prosty generator okrągłych etykiet do druku. Własne napisy, numery, ozdoby oraz pliki PNG i PDF A4."
+    />
+    <meta name="theme-color" content="#173b64" />
+    <title>Okręgi — generator etykiet do druku</title>
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./vendor/jspdf.umd.min.js" defer></script>
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./">Okręgi do druku</a>
+      <div class="project-actions">
+        <button id="import-button" class="button secondary" type="button">Wczytaj z pliku</button>
+        <button id="save-project" class="button secondary" type="button">Zapisz do pliku</button>
+        <input id="import-file" type="file" accept="application/json,.json" hidden />
+      </div>
+    </header>
+
+    <main>
+      <div class="page-heading">
+        <h1>Generator etykiet</h1>
+        <p>Ustaw napisy i średnicę. Sprawdź podgląd przed pobraniem pliku.</p>
+      </div>
+      <p id="storage-status" class="storage-status" role="status">
+        Ustawienia zapisują się automatycznie w tej przeglądarce.
+      </p>
+      <nav class="mobile-jump" aria-label="Przejdź do części aplikacji">
+        <a href="#editor">Ustawienia</a>
+        <a href="#preview-section">Podgląd i pobieranie</a>
+      </nav>
+      <div id="notice" role="status" class="notice" hidden></div>
+      <noscript>Włącz JavaScript w przeglądarce, aby skorzystać z generatora.</noscript>
+
+      <div class="workspace">
+        <form id="editor" class="editor" autocomplete="off">
+          <section class="panel">
+            <h2>Napisy i średnica</h2>
+            <label for="top-text">Napis na górze koła</label>
+            <input id="top-text" maxlength="100" data-field="top" />
+            <label for="bottom-text">Napis na dole koła</label>
+            <input id="bottom-text" maxlength="100" data-field="bottom" />
+            <label for="diameter">Średnica koła w milimetrach</label>
+            <div class="unit-input diameter-input">
+              <input
+                id="diameter"
+                type="number"
+                min="8"
+                max="120"
+                step="0.5"
+                data-field="diameterMm"
+              />
+              <span>mm</span>
+            </div>
+            <p class="help">
+              Na przykład: 37 mm to 3,7 cm. Wydrukuj PDF w skali 100%, aby zachować ten wymiar.
+            </p>
+          </section>
+
+          <section class="panel">
+            <h2>Co ma być w środku koła?</h2>
+            <fieldset class="segmented">
+              <legend class="sr-only">Wybierz zawartość środka</legend>
+              <label
+                ><input type="radio" name="mode" value="numbers" /><span
+                  >Kolejne numery</span
+                ></label
+              >
+              <label
+                ><input type="radio" name="mode" value="text" /><span>Własny tekst</span></label
+              >
+            </fieldset>
+
+            <div id="number-fields" hidden>
+              <div class="field-row">
+                <div>
+                  <label for="start-number">Numer początkowy</label>
+                  <input
+                    id="start-number"
+                    data-field="start"
+                    type="number"
+                    min="0"
+                    max="99999"
+                    step="1"
+                  />
+                </div>
+                <div>
+                  <label for="end-number">Numer końcowy</label>
+                  <input
+                    id="end-number"
+                    data-field="end"
+                    type="number"
+                    min="0"
+                    max="99999"
+                    step="1"
+                  />
+                </div>
+              </div>
+              <p class="help">Każdy numer będzie na osobnym kole.</p>
+            </div>
+
+            <div id="text-fields">
+              <p class="help">
+                Wpisz tekst, liczbę kopii i wybierz ozdobę. Klawisz Enter rozpoczyna nowy wiersz
+                napisu.
+              </p>
+              <div id="text-rows"></div>
+              <button id="add-row" type="button" class="button secondary add-button">
+                Dodaj kolejny wzór
+              </button>
+            </div>
+            <button id="preset-roles" type="button" class="button secondary preset-button">
+              Wczytaj przykład: prezes i skarbnik
+            </button>
+          </section>
+
+          <details id="appearance-options" class="panel">
+            <summary>Rozmiar liter, kolory i ozdoby</summary>
+            <div class="field-row">
+              <div>
+                <label for="center-size">Litery w środku (mm)</label>
+                <input
+                  id="center-size"
+                  type="number"
+                  min="0.1"
+                  max="60"
+                  step="0.001"
+                  data-field="style.fontMm"
+                />
+              </div>
+              <div>
+                <label for="ring-size">Litery wokół (mm)</label>
+                <input
+                  id="ring-size"
+                  type="number"
+                  min="0.1"
+                  max="12"
+                  step="0.001"
+                  data-field="style.ringFontMm"
+                />
+              </div>
+            </div>
+            <div class="field-row">
+              <div>
+                <label for="top-span">Rozstaw na górze (°)</label>
+                <input id="top-span" type="number" min="1" max="180" data-field="style.topSpan" />
+              </div>
+              <div>
+                <label for="bottom-span">Rozstaw na dole (°)</label>
+                <input
+                  id="bottom-span"
+                  type="number"
+                  min="1"
+                  max="180"
+                  data-field="style.bottomSpan"
+                />
+              </div>
+            </div>
+            <div class="field-row">
+              <div>
+                <label for="ink-color">Kolor napisów i obwódki</label
+                ><input id="ink-color" type="color" data-field="style.color" />
+              </div>
+              <div>
+                <label for="accent-color">Kolor ozdób</label
+                ><input id="accent-color" type="color" data-field="style.accent" />
+              </div>
+            </div>
+            <label class="check-label"
+              ><input type="checkbox" id="side-symbols" data-field="style.symbols" />Pokaż boczne
+              symbole wędkarskie</label
+            >
+
+            <details id="decoration-options" class="advanced">
+              <summary>Dokładne położenie ozdób i tekstu</summary>
+              <div class="field-row">
+                <div>
+                  <label for="decoration-size">Rozmiar ozdoby (mm)</label
+                  ><input
+                    id="decoration-size"
+                    type="number"
+                    min="1"
+                    max="60"
+                    step="0.5"
+                    data-field="style.decorationMm"
+                  />
+                </div>
+                <div>
+                  <label for="decoration-y">Przesunięcie ozdoby (mm)</label
+                  ><input
+                    id="decoration-y"
+                    type="number"
+                    min="-60"
+                    max="60"
+                    step="0.5"
+                    data-field="style.decorationOffsetY"
+                  />
+                </div>
+              </div>
+              <div class="field-row">
+                <div>
+                  <label for="text-y">Przesunięcie tekstu (mm)</label
+                  ><input
+                    id="text-y"
+                    type="number"
+                    min="-60"
+                    max="60"
+                    step="0.5"
+                    data-field="style.textOffsetY"
+                  />
+                </div>
+                <div>
+                  <label for="line-spacing">Odstęp między wierszami (mm)</label
+                  ><input
+                    id="line-spacing"
+                    type="number"
+                    min="0"
+                    max="20"
+                    step="0.1"
+                    data-field="style.lineSpacingMm"
+                  />
+                </div>
+              </div>
+              <label for="rod-size"
+                >Wielkość wędek: <output id="rod-size-value" for="rod-size">1,8 razy</output></label
+              >
+              <input
+                id="rod-size"
+                type="range"
+                min="0.5"
+                max="3"
+                step="0.1"
+                data-field="style.rodsScale"
+              />
+              <p class="help">Przesunięcie ujemne przenosi element wyżej, a dodatnie — niżej.</p>
+            </details>
+          </details>
+
+          <details id="layout-options" class="panel">
+            <summary>Rozmieszczenie kół na kartce A4</summary>
+            <p class="help">
+              Wszystkie koła muszą zmieścić się na jednej kartce. Ich średnica pozostaje taka, jak
+              podano wyżej.
+            </p>
+            <button id="fit-columns" type="button" class="button secondary">
+              Dobierz liczbę kolumn do kartki
+            </button>
+            <div class="field-row">
+              <div>
+                <label for="columns">Liczba kolumn</label
+                ><input id="columns" data-field="layout.columns" type="number" min="1" max="30" />
+              </div>
+              <div>
+                <label for="margin">Margines kartki (mm)</label
+                ><input
+                  id="margin"
+                  data-field="layout.margin"
+                  type="number"
+                  min="0"
+                  max="70"
+                  step="0.5"
+                />
+              </div>
+            </div>
+            <div class="field-row">
+              <div>
+                <label for="gap-x">Odstęp poziomy (mm)</label
+                ><input
+                  id="gap-x"
+                  data-field="layout.gapX"
+                  type="number"
+                  min="0"
+                  max="30"
+                  step="0.5"
+                />
+              </div>
+              <div>
+                <label for="gap-y">Odstęp pionowy (mm)</label
+                ><input
+                  id="gap-y"
+                  data-field="layout.gapY"
+                  type="number"
+                  min="0"
+                  max="30"
+                  step="0.5"
+                />
+              </div>
+            </div>
+          </details>
+        </form>
+
+        <section
+          id="preview-section"
+          class="preview-column"
+          aria-label="Podgląd i pobieranie plików"
+        >
+          <div class="preview-card">
+            <h2>Sprawdź podgląd</h2>
+            <div class="preview-tabs" role="group" aria-label="Wybierz widok podglądu">
+              <button id="view-label" type="button" class="active" aria-pressed="true">
+                Jedno koło
+              </button>
+              <button id="view-sheet" type="button" aria-pressed="false">Cała kartka A4</button>
+            </div>
+            <div id="preview-stage" class="preview-stage">
+              <canvas
+                id="preview-canvas"
+                width="874"
+                height="874"
+                aria-label="Podgląd aktualnego okręgu"
+              ></canvas>
+              <p id="loading">Przygotowuję podgląd…</p>
+            </div>
+            <div id="preview-error" class="error-message" role="alert" hidden></div>
+            <div class="preview-bottom">
+              <label for="preview-select"
+                >Wybierz koło do obejrzenia
+                <select id="preview-select" aria-label="Wybierz koło do podglądu"></select>
+              </label>
+              <div class="preview-meta">
+                <strong id="diameter-label">37 mm</strong><span id="count-label">4 koła na A4</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="export-card">
+            <h2>Pobierz plik</h2>
+            <p>
+              Do drukowania wybierz <strong>PDF A4</strong>. PNG to obraz jednego, wybranego koła.
+            </p>
+            <label class="check-label approval"
+              ><input id="approve" type="checkbox" disabled />Sprawdziłem podgląd. Można przygotować
+              PDF.</label
+            >
+            <div class="export-buttons">
+              <button id="download-png" class="button secondary" type="button" disabled>
+                Pobierz obraz PNG
+              </button>
+              <button id="download-pdf" class="button primary" type="button" disabled>
+                Pobierz PDF A4
+              </button>
+            </div>
+            <p class="print-note">
+              W oknie drukowania ustaw <strong>100% / rzeczywisty rozmiar</strong>. Wyłącz
+              dopasowanie do strony.
+            </p>
+            <p id="export-status" role="status" class="help"></p>
+          </div>
+        </section>
+      </div>
+    </main>
+    <footer>
+      Projekt wróci po ponownym otwarciu tej strony w tej samej przeglądarce. Kopię na inny komputer
+      zapiszesz przyciskiem „Zapisz do pliku”.
+    </footer>
+  </body>
+</html>

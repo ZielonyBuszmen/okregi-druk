@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "top": "KOMOROWO",
+  "bottom": "Koło PZW Nr-34",
+  "diameterMm": 37,
+  "dpi": 600,
+  "mode": "text",
+  "start": 1,
+  "end": 30,
+  "rows": [
+    {
+      "text": "PREZES",
+      "copies": 2,
+      "decoration": "fishing",
+      "image": null
+    },
+    {
+      "text": "SKARBNIK\nKOŁA",
+      "copies": 2,
+      "decoration": "coins",
+      "image": null
+    }
+  ],
+  "layout": {
+    "columns": 2,
+    "gapX": 4,
+    "gapY": 4,
+    "margin": 10
+  },
+  "style": {
+    "color": "#100863",
+    "accent": "#C49A3A",
+    "fontMm": 4.2,
+    "ringFontMm": 3.021666666666667,
+    "textRadiusMm": 15.355,
+    "innerRadiusMm": 13.381666666666666,
+    "innerWidthMm": 0.1726666666666667,
+    "borderMm": 0.8016666666666666,
+    "topSpan": 120,
+    "bottomSpan": 132,
+    "symbols": true,
+    "lineSpacingMm": 1,
+    "textOffsetY": 2,
+    "decorationMm": 12,
+    "decorationOffsetY": -7,
+    "rodsScale": 1.8
+  }
+}
