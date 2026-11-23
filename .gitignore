@@ -1,0 +1,9 @@
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+output/*
+!output/.gitkeep
+input/*
+!input/.gitkeep
+!input/example.png
