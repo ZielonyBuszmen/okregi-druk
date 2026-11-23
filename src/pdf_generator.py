@@ -26,7 +26,8 @@ class Placement:
 
 def calculate_layout(config: Config) -> list[Placement]:
     c = config.validate()
-    count = c.end_number - c.start_number + 1
+    count = len(c.center_labels) if c.center_labels is not None else c.end_number - c.start_number + 1
+    start = 1 if c.center_labels is not None else c.start_number
     used_rows = math.ceil(count / c.columns)
     used_columns = min(count, c.columns)
     width = used_columns * c.diameter_mm + (used_columns - 1) * c.gap_x_mm
@@ -47,7 +48,7 @@ def calculate_layout(config: Config) -> list[Placement]:
         left = c.margin_left_mm + (available_w - row_width) / 2
         for column in range(row_count):
             result.append(Placement(
-                c.start_number + row * c.columns + column,
+                start + row * c.columns + column,
                 left + column * (c.diameter_mm + c.gap_x_mm),
                 top + row * (c.diameter_mm + c.gap_y_mm), c.diameter_mm,
             ))

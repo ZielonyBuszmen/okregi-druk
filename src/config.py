@@ -16,6 +16,7 @@ class ConfigError(ValueError):
 
 @dataclass(frozen=True)
 class Config:
+    background_mode: str = "image"
     image: str = "input/example.png"
     dpi: int = 600
     diameter_mm: float = 30.0
@@ -29,11 +30,28 @@ class Config:
     image_offset_y: float = 0.0
     image_fit: str = "cover"
     background_color: str = "white"
+    badge_top_text: str = "LESZCZE 34"
+    badge_bottom_text: str = "KOŁO OM PZW KOMOROWO"
+    badge_color: str = "#100863"
+    badge_font_size_mm: float = 2.45
+    badge_text_radius_mm: float = 12.45
+    badge_top_span_deg: float = 112.0
+    badge_bottom_span_deg: float = 180.0
+    badge_inner_radius_mm: float = 10.85
+    badge_inner_width_mm: float = 0.14
+    badge_symbols: bool = True
     font_family: str = "DejaVuSans"
     font_weight: str = "bold"
     font_path: str | None = None
     font_size_mm: float | None = 15.0
     font_size_pt: float | None = None
+    center_labels: list[str] | None = None
+    center_line_spacing_mm: float = 1.0
+    center_decorations: list[str] | None = None
+    decoration_size_mm: float = 12.0
+    decoration_offset_y_mm: float = -7.0
+    decoration_accent_color: str = "#C49A3A"
+    fishing_rods_scale: float = 1.0
     number_color: str = "black"
     number_outline_mm: float = 0.0
     number_outline_color: str = "white"
@@ -71,7 +89,11 @@ class Config:
             kind = str(field.type)
             if value is None and "None" in kind:
                 continue
-            if field.type is bool:
+            if field.name in ("center_labels", "center_decorations"):
+                valid = isinstance(value, list) and bool(value) and all(
+                    isinstance(text, str) and bool(text.strip()) for text in value
+                )
+            elif field.type is bool:
                 valid = type(value) is bool
             elif field.type is int:
                 valid = type(value) is int
@@ -82,11 +104,13 @@ class Config:
             if not valid:
                 raise ConfigError(f"Nieprawidłowa wartość {field.name}: {value!r}.")
 
-        positive = ("diameter_mm", "image_scale")
+        positive = ("diameter_mm", "image_scale", "badge_font_size_mm", "badge_text_radius_mm", "badge_inner_radius_mm", "decoration_size_mm", "fishing_rods_scale")
         nonnegative = (
             "blur_mm", "brightness", "contrast", "saturation", "number_outline_mm",
             "shadow_blur_mm", "border_width_mm", "gap_x_mm", "gap_y_mm",
             "margin_left_mm", "margin_right_mm", "margin_top_mm", "margin_bottom_mm",
+            "badge_inner_width_mm",
+            "center_line_spacing_mm",
         )
         for name in positive + nonnegative:
             value = getattr(self, name)
@@ -102,6 +126,15 @@ class Config:
             raise ConfigError("Etykieta musi mieć od 8 do 6000 pikseli; zmień średnicę lub DPI.")
         if self.image_fit not in ("cover", "contain"):
             raise ConfigError("image_fit: wybierz cover lub contain.")
+        if self.background_mode not in ("image", "badge"):
+            raise ConfigError("background_mode: wybierz image lub badge.")
+        if self.background_mode == "badge":
+            if self.badge_text_radius_mm + self.badge_font_size_mm / 2 >= self.diameter_mm / 2 - self.border_width_mm:
+                raise ConfigError("Napis odznaki nie mieści się wewnątrz obwódki; zmień promień lub rozmiar tekstu.")
+            if self.badge_inner_radius_mm + self.badge_inner_width_mm / 2 >= self.diameter_mm / 2:
+                raise ConfigError("Wewnętrzny łuk musi mieścić się w etykiecie.")
+        if not 0 < self.badge_top_span_deg <= 180 or not 0 < self.badge_bottom_span_deg <= 180:
+            raise ConfigError("Kąty napisów odznaki muszą być w zakresie (0, 180].")
         if self.font_weight not in ("regular", "bold"):
             raise ConfigError("font_weight: wybierz regular lub bold.")
         if not self.font_path and self.font_family not in ("DejaVuSans", "DejaVuSerif", "DejaVuSansMono"):
@@ -117,9 +150,17 @@ class Config:
             raise ConfigError("columns i rows muszą być dodatnie.")
         if self.start_number < 0 or self.end_number < self.start_number or self.preview_number < 0:
             raise ConfigError("Zakres numeracji musi być rosnący i nieujemny.")
-        if self.end_number - self.start_number + 1 > self.columns * self.rows:
+        count = len(self.center_labels) if self.center_labels is not None else self.end_number - self.start_number + 1
+        if count > self.columns * self.rows:
             raise ConfigError("Zakres numeracji przekracza pojemność siatki; zwiększ columns/rows.")
-        for name in ("background_color", "number_color", "number_outline_color", "shadow_color", "border_color"):
+        if self.center_labels is not None and not 1 <= self.preview_number <= count:
+            raise ConfigError("preview_number musi wskazywać pozycję na liście center_labels (od 1).")
+        if self.center_decorations is not None:
+            if self.center_labels is None or len(self.center_decorations) != len(self.center_labels):
+                raise ConfigError("center_decorations wymaga jednej ozdoby dla każdej pozycji center_labels.")
+            if any(item not in ("none", "coins", "fishing") for item in self.center_decorations):
+                raise ConfigError("Ozdoby center_decorations: wybierz none, coins lub fishing.")
+        for name in ("background_color", "badge_color", "decoration_accent_color", "number_color", "number_outline_color", "shadow_color", "border_color"):
             color = getattr(self, name)
             if name == "number_color" and color == "auto":
                 continue

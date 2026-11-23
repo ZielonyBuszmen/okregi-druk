@@ -5,7 +5,8 @@ Jeden renderer tworzy przezroczysty PNG etykiety; PDF osadza dokładnie tę sam�
 
 ## Gdzie są pliki
 
-- [Aktualny podgląd numeru 12](output/preview.png) — gotowy PNG do obejrzenia.
+- [Aktualny podgląd PREZES](output/preview.png) — gotowy PNG do obejrzenia.
+- [PREZES](output/preview-prezes.png) i [SKARBNIK KOŁA](output/preview-skarbnik.png) — dwa wzory do zatwierdzenia.
 - [Przykładowa grafika tła](input/example.png) — obraz użyty w podglądzie.
 - `input/` — tutaj wrzucaj własne obrazki PNG, JPG lub WEBP.
 - `output/history/` — wcześniejsze podglądy i zapisane ustawienia.
@@ -15,6 +16,18 @@ Jeden renderer tworzy przezroczysty PNG etykiety; PDF osadza dokładnie tę sam�
 
 Katalog projektu w WSL: `/sciezka/do/projektu`.
 Finalny PDF powstaje dopiero po zatwierdzeniu wyglądu.
+
+Aktualne ustawienia: odtworzony wzór ze zdjęcia, granatowe napisy „KOMOROWO”
+i „Koło PZW Nr-34”, boczny koszyczek i spławik, bez ryby.
+W środku zamiast numeru znajduje się „PREZES” lub „SKARBNIK” / „KOŁA” w dwóch wierszach.
+Średnica to 37 mm. Przygotowano po dwie identyczne kopie każdego wzoru,
+łącznie cztery etykiety w układzie 2 × 2, z odstępami 4 mm.
+Rozmiar czcionki środkowej wynosi 4,2 mm; tekst jest centrowany według widocznych znaków.
+PREZES jest ozdobiony skrzyżowanymi wędkami i złotym wieńcem, SKARBNIK KOŁA
+ma złote monety ze znakiem „zł”. Ozdoby powstają w tym samym rendererze co etykieta.
+Tryb `background_mode: "badge"` rysuje wzór bez pliku obrazka;
+`input/example.png` pozostaje zachowany. Po akceptacji wygenerowano
+[PDF PREZES × 2 i SKARBNIK KOŁA × 2](output/prezes-skarbnik-37mm.pdf).
 
 ## Start w WSL2 Ubuntu
 
@@ -29,7 +42,7 @@ export LOCAL_GID=$(id -g)
 docker compose build generator
 docker compose run --rm generator --help
 docker compose run --rm generator preview --help
-docker compose run --rm generator preview --config config.json --number 12
+docker compose run --rm generator preview --config config.json --number 1
 ```
 
 Obrazek demonstracyjny jest już w `input/example.png`. Można go odtworzyć
@@ -68,8 +81,9 @@ Po akceptacji:
 docker compose run --rm generator pdf --config config.json
 ```
 
-Powstanie `output/labels.pdf` i kopia użytej konfiguracji `output/labels.json`.
-PDF ma jedną stronę 210 × 297 mm i etykiety o średnicy dokładnie 30 mm.
+Przy aktualnych ustawieniach powstanie `output/prezes-skarbnik-37mm.pdf`
+i kopia użytej konfiguracji `output/prezes-skarbnik-37mm.json`.
+PDF ma jedną stronę 210 × 297 mm i etykiety o średnicy dokładnie 37 mm.
 W drukarce wybierz **100% / rzeczywisty rozmiar**, wyłącz „dopasuj do strony”.
 PDF zawiera również preferencję `PrintScaling=None`. Rzeczywista dokładność wydruku
 zależy od sterownika i drukarki — pierwszy arkusz warto zmierzyć linijką.
@@ -103,7 +117,12 @@ lub brak obrazka nie zmienia konfiguracji. `--output output/inny.png` zmienia
 
 | Pola konfiguracji | Znaczenie i jednostki |
 | --- | --- |
+| `background_mode` | `image`: grafika w tle; `badge`: napisy na łuku i symbole, pusty środek na numer |
 | `image`, `dpi`, `diameter_mm` | Plik PNG/JPG/WEBP, DPI (600), średnica w mm (30) |
+| `badge_top_text`, `badge_bottom_text`, `badge_color` | Treść napisów górnego i dolnego oraz wspólny kolor napisów, łuków i symboli |
+| `badge_font_size_mm`, `badge_text_radius_mm` | Rozmiar czcionki napisów i promień rozmieszczenia znaków, w mm; krój jak numer |
+| `badge_top_span_deg`, `badge_bottom_span_deg` | Długość łuków napisów w stopniach (0–180); za długi tekst zgłasza błąd |
+| `badge_inner_radius_mm`, `badge_inner_width_mm`, `badge_symbols` | Promień i grubość łuków wewnętrznych w mm oraz boczne symbole wędkarskie |
 | `blur_mm` | Promień Gaussa w mm, domyślnie 0 |
 | `washout` | Nałożenie bieli, 0–100%; przykład startowy: 40 |
 | `brightness`, `contrast`, `saturation` | Mnożniki ≥ 0; 1 = bez zmiany, saturation 0 = szarość |
@@ -115,6 +134,12 @@ lub brak obrazka nie zmienia konfiguracji. `--output output/inny.png` zmienia
 | `font_weight` | `regular` lub `bold`; domyślnie pogrubiona bezszeryfowa |
 | `font_path` | Opcjonalny TTF/OTF; zawiera wybrany krój/grubość i zastępuje family/weight |
 | `font_size_mm`, `font_size_pt` | Rozmiar em czcionki, nie wysokość widocznego znaku; dokładnie jedno pole liczbowe, drugie `null` |
+| `center_labels` | Lista napisów w środku, w kolejności na arkuszu; powtórzony wpis oznacza identyczną kopię; `null` przywraca numerację |
+| `center_line_spacing_mm` | Odstęp między wierszami środkowego napisu w mm; `\n` w napisie rozdziela wiersze |
+| `center_decorations` | Lista ozdób dla kolejnych napisów: `fishing`, `coins`, `none`; `null` wyłącza ozdoby |
+| `decoration_size_mm`, `decoration_offset_y_mm` | Szerokość wzorca ozdoby w mm i jej przesunięcie od środka, dodatnie w dół |
+| `decoration_accent_color` | Kolor ozdób, obecnie złoty; obrysy używają `badge_color` |
+| `fishing_rods_scale` | Skala samych wędek, bez zmiany wieńca; aktualnie 1,8 |
 | `number_color` | Kolor CSS/hex lub `auto` (czerń/biel na podstawie tła pod cyframi) |
 | `number_outline_mm`, `number_outline_color` | Grubość i kolor obrysu cyfr; 0 wyłącza |
 | `number_shadow` | Cień włączany `--number-shadow`, wyłączany `--no-number-shadow` |
@@ -133,12 +158,22 @@ lub brak obrazka nie zmienia konfiguracji. `--output output/inny.png` zmienia
 w mm. Nie podawaj obu opcji naraz. W JSON ustaw drugą jednostkę na `null`.
 Kolory mogą mieć nazwy CSS lub format `#RRGGBB` (w powłoce otocz hex cudzysłowem).
 
+W trybie `center_labels` liczba etykiet wynika z listy, a `--number` wskazuje
+jej pozycję od 1. `start_number` i `end_number` dotyczą wtedy wyłącznie
+ustawień zachowanej numeracji. Przykład aktualnej listy w JSON:
+`["PREZES", "PREZES", "SKARBNIK\nKOŁA", "SKARBNIK\nKOŁA"]`.
+Lista jest dostępna w CLI przez `--center-labels '["PREZES","PREZES"]'`.
+Przywrócenie numeracji: `--center-labels null`. Za duży napis zgłasza błąd;
+program nie zmniejsza automatycznie tekstu ani etykiety.
+
 Kolejność efektów: kadr bez zmiany proporcji → rozmycie → nasycenie → kontrast →
 jasność → biała warstwa → cień / obrys cyfry / cyfra → obrys koła → przycięcie
 całej kompozycji maską kołową. Maska ma antyaliasing. Pozycja cyfr uwzględnia
 faktyczny obrys znaków i metryki czcionki, a nie jedynie szerokość tekstu
 czy pozycję linii bazowej. Ręczne przesunięcia pozwalają dopracować optykę własnego fontu.
 Zmniejszenie image_scale poniżej 1 lub przesunięcie obrazka może odsłonić kolor tła.
+Efekty obrazka dotyczą trybu `image`. Tryb `badge` zachowuje jednolite tło,
+rysuje napisy i symbole, a następnie ten sam numer, obrys i maskę kołową.
 
 Siatka jest wyśrodkowana w obszarze ograniczonym marginesami. Przy równych
 marginesach jej środek pokrywa się ze środkiem kartki. Domyślnie zajmuje

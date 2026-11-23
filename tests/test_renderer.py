@@ -88,3 +88,54 @@ def test_bad_image_and_font(config, base):
     (base / "broken.png").write_text("not an image")
     with pytest.raises(ConfigError):
         LabelRenderer(replace(config, image="broken.png"), base)
+
+
+def test_badge_without_image_has_empty_center_and_visible_ring(config, base):
+    c = replace(config, background_mode="badge", image="absent.png", font_size_mm=13)
+    renderer = LabelRenderer(c, base)
+    assert renderer.image_path is None
+    center = renderer.size // 2
+    radius = round(7 * renderer.px_per_mm)
+    middle = renderer.background.crop((center - radius, center - radius, center + radius, center + radius))
+    assert middle.getextrema() == ((255, 255),) * 3
+    assert ImageChops.difference(renderer.background, Image.new("RGB", renderer.background.size, "white")).getbbox()
+    assert renderer.render(1).tobytes() != renderer.render(15).tobytes()
+
+
+def test_badge_rejects_text_that_would_overlap(config, base):
+    with pytest.raises(ConfigError, match="nie mieści się na łuku"):
+        LabelRenderer(replace(config, background_mode="badge", badge_bottom_text="ZA DŁUGI NAPIS " * 10), base)
+
+
+def test_role_labels_are_centered_and_duplicate_identically(role_config, base):
+    renderer = LabelRenderer(role_config, base)
+    assert renderer.render(1).tobytes() == renderer.render(2).tobytes()
+    assert renderer.render(3).tobytes() == renderer.render(4).tobytes()
+    assert renderer.render(1).tobytes() != renderer.render(3).tobytes()
+    for index in (1, 3):
+        x0, y0, x1, y1 = renderer.text_mask(index).getbbox()
+        assert abs((x0 + x1) / 2 - renderer.size / 2) <= 1
+        assert abs((y0 + y1) / 2 - renderer.size / 2) <= 1
+    with pytest.raises(ConfigError, match="Pozycja napisu"):
+        renderer.render(5)
+
+
+def test_role_label_rejects_clipping_without_resizing(role_config, base):
+    renderer = LabelRenderer(replace(role_config, font_size_mm=12), base)
+    with pytest.raises(ConfigError, match="nie mieści się wewnątrz koła"):
+        renderer.render(3)
+
+
+def test_role_decorations_fit_preserve_text_and_repeat(role_config, base):
+    decorated = replace(role_config, center_decorations=["fishing", "fishing", "coins", "coins"], number_offset_y_mm=2)
+    renderer = LabelRenderer(decorated, base)
+    plain = LabelRenderer(replace(decorated, center_decorations=None), base)
+    assert renderer.render(1).tobytes() == renderer.render(2).tobytes()
+    assert renderer.render(3).tobytes() == renderer.render(4).tobytes()
+    for index in (1, 3):
+        assert renderer.render(index).tobytes() != plain.render(index).tobytes()
+        assert renderer.text_mask(index).tobytes() == plain.text_mask(index).tobytes()
+        alpha = renderer.render_decoration(index).getchannel("A")
+        assert ImageChops.multiply(alpha, renderer.text_mask(index)).getbbox() is None
+    with pytest.raises(ConfigError, match="Ozdoba nie mieści się"):
+        LabelRenderer(replace(decorated, decoration_size_mm=40), base).render(1)

@@ -47,8 +47,9 @@ def test_reject_layout_without_scaling(config, changes):
 
 
 @pytest.mark.parametrize("dpi", [150, 600])
-def test_pdf_physical_diameter_single_page_and_pixel_identity(config, base, dpi):
-    config = replace(config, dpi=dpi)
+@pytest.mark.parametrize("mode", ["image", "badge"])
+def test_pdf_physical_diameter_single_page_and_pixel_identity(config, base, dpi, mode):
+    config = replace(config, dpi=dpi, background_mode=mode)
     renderer = LabelRenderer(config, base)
     expected = renderer.render(12)
     png = base / "preview.png"
@@ -101,3 +102,29 @@ def test_failed_pdf_does_not_replace_previous_file(config, base):
         generate_pdf(config, BrokenRenderer(), target)
     assert target.read_bytes() == b"previous document"
     assert list(base.glob(".existing.*.pdf")) == []
+
+
+@pytest.mark.parametrize("decorated", [False, True])
+def test_role_pdf_has_two_copies_each_at_37_mm(role_config, base, decorated):
+    if decorated:
+        role_config = replace(role_config, center_decorations=["fishing", "fishing", "coins", "coins"], number_offset_y_mm=2)
+    renderer = LabelRenderer(role_config, base)
+    placements = calculate_layout(role_config)
+    assert [item.number for item in placements] == [1, 2, 3, 4]
+    target = base / "temporary-role-test.pdf"
+    generate_pdf(role_config, renderer, target)
+    reader = PdfReader(target)
+    assert len(reader.pages) == 1
+    page = reader.pages[0]
+    assert float(page.mediabox.width) / mm == pytest.approx(210, abs=1e-5)
+    assert float(page.mediabox.height) / mm == pytest.approx(297, abs=5e-5)
+    ops = ContentStream(page.get_contents(), reader).operations
+    draws = [args[0] for args, op in ops if op == b"Do"]
+    sizes = [args for args, op in ops if op == b"cm" and abs(float(args[0]) / mm - 37) < 1e-5]
+    assert len(draws) == len(sizes) == 4
+    assert draws[0] == draws[1] and draws[2] == draws[3] and draws[0] != draws[2]
+    for name, index in ((draws[0], 1), (draws[2], 3)):
+        expected = renderer.render(index)
+        embedded = page["/Resources"]["/XObject"][name]
+        assert embedded.get_data() == expected.convert("RGB").tobytes()
+        assert embedded["/SMask"].get_data() == expected.getchannel("A").tobytes()

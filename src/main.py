@@ -15,6 +15,10 @@ from .renderer import LabelRenderer, RENDERER_VERSION
 
 
 HELP = {
+    "center_labels": "lista JSON napisów zamiast numerów; null przywraca numerację; \\n rozdziela wiersze",
+    "center_line_spacing_mm": "odstęp między wierszami napisu w środku, w mm",
+    "center_decorations": "lista JSON ozdób dla center_labels: none, coins, fishing; null wyłącza",
+    "background_mode": "image: obrazek w tle; badge: napisy na łuku i symbole bez ryby",
     "image": "PNG/JPG/WEBP; ścieżka względem pliku konfiguracji",
     "dpi": "rozdzielczość bitmapy (domyślnie 600 DPI)",
     "washout": "nałożenie bieli w procentach, 0–100",
@@ -45,7 +49,9 @@ def parser():
             if field.name == "preview_number":
                 args.append("--number")
             options = {"dest": field.name, "default": argparse.SUPPRESS}
-            if field.type is bool:
+            if field.name in ("center_labels", "center_decorations"):
+                options["type"] = json.loads
+            elif field.type is bool:
                 options["action"] = argparse.BooleanOptionalAction
             elif field.type is int:
                 options["type"] = int
@@ -56,6 +62,8 @@ def parser():
             options["help"] = HELP.get(field.name, field.name.replace("_", " "))
             if field.name == "image_fit":
                 options["choices"] = ("cover", "contain")
+            if field.name == "background_mode":
+                options["choices"] = ("image", "badge")
             if field.name == "font_weight":
                 options["choices"] = ("regular", "bold")
             sub.add_argument(*args, **options)
@@ -73,7 +81,7 @@ def signature(config, renderer):
     payload = {
         "renderer_version": RENDERER_VERSION,
         "settings": settings,
-        "image_sha256": file_hash(renderer.image_path),
+        "image_sha256": file_hash(renderer.image_path) if renderer.image_path is not None else None,
         "font_sha256": file_hash(renderer.font_path),
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
@@ -126,8 +134,10 @@ def main(argv=None):
         arg_parser.error("Użyj tylko jednego: --font-size-mm lub --font-size-pt.")
     if "font_size_mm" in overrides:
         overrides["font_size_pt"] = None
-    if "font_size_pt" in overrides:
+    elif "font_size_pt" in overrides:
         overrides["font_size_mm"] = None
+    if "center_labels" in overrides and overrides["center_labels"] is None:
+        overrides.setdefault("center_decorations", None)
     if args.output:
         overrides["preview_output" if args.command == "preview" else "pdf_output"] = args.output
     try:
@@ -148,7 +158,7 @@ def main(argv=None):
             resolve_path(base, config.pdf_output),
             resolve_path(base, config.pdf_output).with_suffix(".json"),
         ]
-        protected = {config_path, renderer.image_path.resolve(), renderer.font_path.resolve()}
+        protected = {config_path, resolve_path(base, config.image).resolve(), renderer.font_path.resolve()}
         if any(path.resolve() in protected for path in outputs) or len({p.resolve() for p in outputs}) != len(outputs):
             raise ConfigError("Ścieżki wynikowe muszą być różne i nie mogą nadpisywać konfiguracji, obrazka ani czcionki.")
         if args.command == "preview":

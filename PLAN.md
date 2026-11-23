@@ -1,16 +1,29 @@
 # Dalszy plan
 
-Implementacja, budowa obrazu, testy i przykładowy podgląd są ukończone.
-Dalsze kroki dotyczą wyboru grafiki i zatwierdzenia wyglądu przez użytkownika.
+Zakończono: po akceptacji użytkownika wygenerowano [PDF](output/labels.pdf)
+z numerami 1–15, średnica 37 mm, jedna strona A4. Sprawdzono format strony,
+liczbę etykiet i ich fizyczną średnicę. Drukować w skali 100% / rzeczywisty rozmiar.
+Aktualnie przygotowano nowy podgląd: „KOMOROWO” u góry, „Koło PZW Nr-34” na dole, numery 1–30,
+średnica 37 mm, układ 5 × 6 na A4. Odstępy: 1 mm poziomo, 4 mm pionowo.
+Po akceptacji wygenerowano [nowy PDF 1–30](output/labels-1-30-komorowo.pdf).
+Sprawdzono jedną stronę A4, 30 etykiet o średnicy 37 mm i zgodność ustawień
+z zatwierdzonym podglądem. Poprzedni plik 1–15 pozostaje zachowany.
 
-1. Obejrzeć [aktualny podgląd numeru 12](output/preview.png).
-2. Opcjonalnie wrzucić własną grafikę PNG/JPG/WEBP do `input/`
-   i wskazać jej nazwę w rozmowie.
-3. Przekazać poprawki wyglądu, np. „rozmycie 0,3 mm, rozjaśnienie bielą 40%,
-   większa liczba”. Codex ma zapisać ustawienia i uruchomić wyłącznie PREVIEW:
+Aktualny etap: zamiast numerów PREZES oraz SKARBNIK / KOŁA, średnica 37 mm.
+PREZES: skrzyżowane wędki i złoty wieniec. SKARBNIK KOŁA: złote monety.
+Przygotowano i obejrzano oba PNG. PDF ma zawierać po dwie kopie każdego wzoru,
+łącznie cztery koła na A4. Po wyraźnej akceptacji wygenerowano
+[gotowy PDF](output/prezes-skarbnik-37mm.pdf), z wędkami w skali 1,8.
+Sprawdzono format A4, średnicę 37 mm, identyczność obu par i zgodność ustawień.
+Poniższa procedura dotyczy przyszłych zmian.
+
+1. Obejrzeć [PREZES](output/preview.png) i [SKARBNIK KOŁA](output/preview-skarbnik.png).
+2. Sprawdzić napisy „KOMOROWO” / „Koło PZW Nr-34” oraz wielkość środkowych napisów.
+3. Przekazać ewentualne poprawki wyglądu.
+   Codex ma zapisać ustawienia i uruchomić wyłącznie PREVIEW:
 
    ```bash
-   docker compose run --rm generator preview --config config.json --number 12
+   docker compose run --rm generator preview --config config.json --number 1
    ```
 
 4. Obejrzeć nowy `output/preview.png`. Kolejne wersje i ustawienia pozostają
@@ -22,9 +35,9 @@ Dalsze kroki dotyczą wyboru grafiki i zatwierdzenia wyglądu przez użytkownika
    docker compose run --rm generator pdf --config config.json
    ```
 
-6. Przekazać użytkownikowi `output/labels.pdf` i przypomnieć o drukowaniu
+6. Przekazać użytkownikowi `output/prezes-skarbnik-37mm.pdf` i przypomnieć o drukowaniu
    w skali 100% / rzeczywisty rozmiar. Oczekiwany wynik: jedna kartka A4,
-   numery 1–33, średnica 30 mm, ostatni rząd wyśrodkowany.
+   PREZES × 2 i SKARBNIK KOŁA × 2, średnica 37 mm, 2 kolumny i 2 rzędy.
 
 PDF nie jest automatycznym kolejnym krokiem po podglądzie. Do czasu wyraźnej
 akceptacji użytkownika praca pozostaje na etapie podglądów.
