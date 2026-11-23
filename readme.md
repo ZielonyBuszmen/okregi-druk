@@ -79,6 +79,9 @@ strona nie pobiera ich z CDN.
 
 Repozytorium: [ZielonyBuszmen/okregi-druk](https://github.com/ZielonyBuszmen/okregi-druk).
 Gałąź `master` zawiera źródła, a `gh-pages` wyłącznie gotową stronę.
+W ustawieniach repozytorium wybierz `master` jako gałąź domyślną.
+Jeśli jako pierwsza została wysłana `gh-pages`, GitHub mógł wybrać ją domyślnie.
+Źródło publikacji Pages ustaw niezależnie na `gh-pages`, zgodnie z instrukcją niżej.
 
 Do publikacji potrzebne są Bash, Git, Node.js 22 lub nowszy, npm oraz dostęp
 do zapisu w repozytorium `origin` (np. działający klucz SSH do GitHuba).
