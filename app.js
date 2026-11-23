@@ -338,13 +338,15 @@ function displayPreview() {
   }
 }
 
+function updateDownloadButtons() {
+  getElement('#download-png').disabled = exportInProgress || !currentPreview;
+  getElement('#download-pdf').disabled = exportInProgress;
+}
+
 function invalidate() {
   generation++;
   currentPreview = null;
-  getElement('#approve').checked = false;
-  getElement('#approve').disabled = true;
-  getElement('#download-png').disabled = true;
-  getElement('#download-pdf').disabled = true;
+  updateDownloadButtons();
   getElement('#loading').hidden = false;
   getElement('#export-status').textContent = '';
   getElement('#auto-fix').hidden = true;
@@ -393,8 +395,6 @@ async function updatePreview() {
     getElement('#preview-error').hidden = true;
     getElement('#auto-fix').hidden = true;
     getElement('#preview-stage').classList.remove('invalid');
-    getElement('#approve').disabled = false;
-    getElement('#download-png').disabled = false;
   } catch (error) {
     if (id !== generation) return;
     currentPreview = null;
@@ -403,12 +403,11 @@ async function updatePreview() {
     getElement('#auto-fix').hidden = !canAutoFit(error, project);
     getElement('#preview-stage').classList.add('invalid');
     getElement('#page-navigation').hidden = true;
-    getElement('#approve').checked = false;
-    getElement('#approve').disabled = true;
-    getElement('#download-png').disabled = true;
-    getElement('#download-pdf').disabled = true;
   } finally {
-    if (id === generation) getElement('#loading').hidden = true;
+    if (id === generation) {
+      getElement('#loading').hidden = true;
+      updateDownloadButtons();
+    }
   }
 }
 
@@ -570,9 +569,6 @@ function changePage(offset) {
 getElement('#previous-page').addEventListener('click', () => changePage(-1));
 getElement('#next-page').addEventListener('click', () => changePage(1));
 editor.addEventListener('toggle', () => persistSession(), true);
-getElement('#approve').addEventListener('change', () => {
-  getElement('#download-pdf').disabled = !getElement('#approve').checked || !currentPreview;
-});
 
 getElement('#save-project').addEventListener('click', () => {
   if (!currentPreview || projectKey(project) !== currentPreview.key) {
@@ -622,40 +618,40 @@ getElement('#download-png').addEventListener('click', async () => {
 });
 
 getElement('#download-pdf').addEventListener('click', async () => {
-  const preview = currentPreview;
-  if (
-    !preview ||
-    exportInProgress ||
-    !getElement('#approve').checked ||
-    projectKey(project) !== preview.key
-  )
+  if (exportInProgress) return;
+  if (!project) {
+    notice('Ustawienia jeszcze się wczytują. Spróbuj za chwilę.', true);
     return;
+  }
+  notice('');
   exportInProgress = true;
   editor.inert = true;
-  for (const selector of [
-    '#download-pdf',
-    '#download-png',
-    '#save-project',
-    '#import-button',
-    '#approve',
-  ])
-    getElement(selector).disabled = true;
+  updateDownloadButtons();
+  for (const selector of ['#save-project', '#import-button']) getElement(selector).disabled = true;
   try {
+    // Kliknięcie działa także tuż po wpisaniu wartości, bez czekania na podgląd.
+    clearTimeout(previewTimer);
+    if (!currentPreview || projectKey(project) !== currentPreview.key) await updatePreview();
+    const preview = currentPreview;
+    if (!preview || projectKey(project) !== preview.key) {
+      notice(`Nie można przygotować PDF. ${getElement('#preview-error').textContent}`, true);
+      return;
+    }
     const blob = await makePdf(preview.project, preview.layout, preview.images, (done, total) => {
       getElement('#export-status').textContent = `Przygotowuję PDF: ${done} z ${total} kół…`;
     });
     download(blob, `okregi-${preview.project.diameterMm}mm-A4.pdf`);
     getElement('#export-status').textContent =
-      `Gotowe. ${circles(preview.layout.labels.length)} na jednej stronie A4.`;
+      `Gotowe. ${circles(preview.layout.labels.length)} · ${pageCountText(preview.layout.pages.length)}.`;
   } catch (error) {
     notice(error.message, true);
     getElement('#export-status').textContent = '';
   } finally {
     exportInProgress = false;
     editor.inert = false;
-    for (const selector of ['#download-png', '#save-project', '#import-button', '#approve'])
+    for (const selector of ['#save-project', '#import-button'])
       getElement(selector).disabled = false;
-    getElement('#download-pdf').disabled = !getElement('#approve').checked || !currentPreview;
+    updateDownloadButtons();
   }
 });
 
