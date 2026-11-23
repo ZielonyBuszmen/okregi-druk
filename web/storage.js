@@ -14,6 +14,8 @@ function readUiState(value = {}) {
     view: value.view === 'sheet' ? 'sheet' : 'label',
     selectedIndex:
       Number.isInteger(value.selectedIndex) && value.selectedIndex >= 0 ? value.selectedIndex : 0,
+    selectedPage:
+      Number.isInteger(value.selectedPage) && value.selectedPage >= 0 ? value.selectedPage : 0,
     rawInputs,
     openSections,
   };

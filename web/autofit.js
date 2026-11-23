@@ -1,28 +1,15 @@
-import { calculateLayout, FitError, labelCount, PAGE } from './model.js';
-import { renderLabel, minimumArcSpan } from './renderer.js';
+import { calculateLayout, FitError, fitColumns, PAGE } from './model.js';
+import { validateLabels, minimumArcSpan } from './renderer.js';
 
 function fittingLayout(project) {
-  const count = labelCount(project);
-  const width = PAGE.width - project.layout.margin * 2;
-  const height = PAGE.height - project.layout.margin * 2;
-  const diameter = project.diameterMm;
-  for (let columns = Math.min(count, 30, Math.floor(width / diameter)); columns >= 1; columns--) {
-    const rows = Math.ceil(count / columns);
-    if (rows * diameter > height) continue;
-    return {
-      ...project.layout,
-      columns,
-      gapX:
-        columns > 1
-          ? Math.min(project.layout.gapX, (width - columns * diameter) / (columns - 1))
-          : project.layout.gapX,
-      gapY:
-        rows > 1
-          ? Math.min(project.layout.gapY, (height - rows * diameter) / (rows - 1))
-          : project.layout.gapY,
-    };
-  }
-  return null;
+  const margin = Math.min(
+    project.layout.margin,
+    (PAGE.width - project.diameterMm) / 2,
+    (PAGE.height - project.diameterMm) / 2,
+  );
+  if (margin < 0) return null;
+  const candidate = { ...project, layout: { ...project.layout, margin } };
+  return { ...candidate.layout, columns: fitColumns(candidate) };
 }
 
 export function canAutoFit(error, project) {
@@ -40,12 +27,7 @@ export function autoFitProject(project, images) {
   for (let attempt = 0; attempt < 100; attempt++) {
     try {
       const layout = calculateLayout(candidate);
-      const checked = new Set();
-      for (const label of layout.labels) {
-        if (checked.has(label.key)) continue;
-        renderLabel(candidate, label, images, 72);
-        checked.add(label.key);
-      }
+      validateLabels(candidate, layout.labels, images);
       return candidate;
     } catch (error) {
       if (!canAutoFit(error, candidate)) throw error;

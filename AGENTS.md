@@ -27,8 +27,9 @@
   użytkownika ani sekretów. Zachowuj wymagane informacje o licencjach bibliotek.
 - W planach zapisuj tylko zadania pozostałe do wykonania. Usuwaj zakończone
   checklisty i dzienniki postępu, zamiast powielać opis aplikacji.
-- Zachowaj jeden renderer Canvas dla podglądu, PNG i PDF. Nie skaluj automatycznie
-  etykiet i nie dodawaj stron, gdy układ nie mieści się na A4.
+- Zachowaj jeden renderer Canvas dla podglądu, PNG i PDF. Nie zmniejszaj
+  automatycznie średnicy etykiet. Nadmiar kół przenoś na kolejne strony A4,
+  w tej samej kolejności. Podgląd musi pozwalać przejrzeć każdą stronę.
 - Przycisk „Popraw automatycznie” może dopasować tekst, ozdoby i układ,
   zachowując średnicę, treść oraz liczbę kół. Korektę sprawdzaj dla wszystkich
   wzorów wspólnym rendererem i zapisuj dopiero po pełnym powodzeniu.

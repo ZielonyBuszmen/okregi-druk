@@ -60,23 +60,28 @@ export async function makePdf(project, layout, images, onProgress = () => {}) {
   pdf.setProperties({ title: `Okregi ${project.diameterMm} mm - A4`, creator: 'Okręgi' });
   pdf.viewerPreferences({ PrintScaling: 'None' });
   const rendered = new Map();
-  for (const [i, item] of layout.placements.entries()) {
-    if (!rendered.has(item.label.key)) {
-      const canvas = renderLabel(project, item.label, images);
-      rendered.set(item.label.key, canvas.toDataURL('image/png'));
+  let completed = 0;
+  for (const page of layout.pages) {
+    if (page.index > 0) pdf.addPage([210, 297], 'portrait');
+    for (const item of page.placements) {
+      if (!rendered.has(item.label.key)) {
+        const canvas = renderLabel(project, item.label, images);
+        rendered.set(item.label.key, canvas.toDataURL('image/png'));
+      }
+      pdf.addImage(
+        rendered.get(item.label.key),
+        'PNG',
+        item.x,
+        item.y,
+        project.diameterMm,
+        project.diameterMm,
+        item.label.key,
+        'FAST',
+      );
+      completed++;
+      onProgress(completed, layout.labels.length);
+      if (completed % 4 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
     }
-    pdf.addImage(
-      rendered.get(item.label.key),
-      'PNG',
-      item.x,
-      item.y,
-      project.diameterMm,
-      project.diameterMm,
-      item.label.key,
-      'FAST',
-    );
-    onProgress(i + 1, layout.placements.length);
-    if (i % 4 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
   }
   return pdf.output('blob');
 }

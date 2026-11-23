@@ -66,7 +66,7 @@ test('Numeracja 1–30 mieści się na A4, przy zachowaniu średnicy 37 mm', () 
   assert.equal(layout.rows, 6);
 });
 
-test('Układ, który się nie mieści, zgłasza błąd zamiast dodawać strony', () => {
+test('Numeracja 1–30 o średnicy 40 mm przechodzi na dwie strony bez zmniejszania kół', () => {
   const p = project();
   p.mode = 'numbers';
   p.start = 1;
@@ -74,8 +74,61 @@ test('Układ, który się nie mieści, zgłasza błąd zamiast dodawać strony',
   p.diameterMm = 40;
   p.layout.columns = 4;
   p.layout.gapX = 1;
-  assert.throws(() => calculateLayout(p), /nie mieści się na A4/);
+  const layout = calculateLayout(p);
+  assert.deepEqual(
+    layout.pages.map((page) => page.labels.length),
+    [24, 6],
+  );
+  assert.deepEqual(
+    layout.pages.flatMap((page) => page.labels.map((label) => label.text)),
+    Array.from({ length: 30 }, (_, index) => String(index + 1)),
+  );
+  assert(layout.placements.every(({ diameterMm }) => diameterMm === 40));
   assert.equal(p.diameterMm, 40);
+});
+
+test('Pełna strona nie tworzy pustej kartki; ostatnia kopia rozpoczyna nową', () => {
+  const p = project();
+  p.rows = [{ text: 'TEST', copies: 12, decoration: 'none', image: null }];
+  assert.equal(calculateLayout(p).pages.length, 1);
+  p.rows[0].copies = 13;
+  const layout = calculateLayout(p);
+  assert.deepEqual(
+    layout.pages.map((page) => page.labels.length),
+    [12, 1],
+  );
+  assert.equal(layout.pages[1].placements[0].x + p.diameterMm / 2, 105);
+  assert.equal(layout.pages[1].placements[0].y + p.diameterMm / 2, 148.5);
+});
+
+test('Każde koło pozostaje w marginesach strony, także przy zbyt wielu kolumnach', () => {
+  for (const diameter of [8, 37, 40, 120]) {
+    const p = resizeDiameter(parseProject(config), diameter);
+    p.end = 100;
+    p.layout.columns = 30;
+    const layout = calculateLayout(p);
+    assert.equal(layout.placements.length, 100);
+    assert.deepEqual(
+      layout.placements.map(({ index }) => index),
+      Array.from({ length: 100 }, (_, index) => index),
+    );
+    for (const page of layout.pages) {
+      assert(page.placements.length > 0);
+      for (const item of page.placements) {
+        assert.equal(item.pageIndex, page.index);
+        assert(item.x >= p.layout.margin - 1e-7);
+        assert(item.y >= p.layout.margin - 1e-7);
+        assert(item.x + diameter <= 210 - p.layout.margin + 1e-7);
+        assert(item.y + diameter <= 297 - p.layout.margin + 1e-7);
+      }
+    }
+  }
+});
+
+test('Błąd pozostaje, gdy nawet jedno koło nie mieści się w zadanych marginesach', () => {
+  const p = resizeDiameter(parseProject(config), 120);
+  p.layout.margin = 70;
+  assert.throws(() => calculateLayout(p), /marginesami/);
 });
 
 test('Średnica zmienia proporcje grafiki, niezależnie od układu strony', () => {

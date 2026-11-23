@@ -19,9 +19,16 @@ a podglądem. Dodatkowe ustawienia można rozwinąć, gdy są potrzebne.
 
 Podgląd, PNG i PDF korzystają ze wspólnego renderera Canvas.
 PNG ma przezroczyste narożniki i metadane 600 DPI. PDF zachowuje dokładną średnicę,
-ma jedną stronę 210 × 297 mm i preferencję drukowania 100%.
-Gdy układ lub tekst się nie mieści, program zgłasza błąd zamiast zmniejszać koła
-lub dodawać strony. Każda zmiana zeruje akceptację podglądu do PDF.
+ma strony 210 × 297 mm i preferencję drukowania 100%.
+Gdy kół jest za dużo, automatycznie dodaje kolejne strony A4, zachowując
+średnicę, kolejność numerów i wszystkie kopie wzorów. Wybrana liczba kolumn
+jest maksimum na stronę; zbyt szeroki rząd zostaje podzielony.
+Przykładowo 30 kół o średnicy 40 mm przy czterech kolumnach daje 24 koła
+na pierwszej stronie i 6 na drugiej. Podgląd „Strony A4” ma licznik oraz
+przyciski poprzedniej i następnej strony. Zapamiętuje również wybraną stronę.
+Wszystkie strony trafiają do jednego PDF, a PNG nadal zawiera wybrane koło.
+Tekst i ozdoby muszą mieścić się wewnątrz koła. Każda zmiana ustawień
+zeruje akceptację podglądu do PDF; przed eksportem sprawdź wszystkie strony.
 
 Nowy projekt zaczyna od kolejnych numerów 1–30 o średnicy 37 mm.
 Po wybraniu „Własny tekst” dostępne są wzory PREZES i SKARBNIK KOŁA,
@@ -34,9 +41,9 @@ w okularach, wesoły robak, kalosz, śpiący spławik, puchar, szczęśliwy hacz
 Przy błędzie dopasowania pojawia się przycisk „Popraw automatycznie”.
 Najpierw wydłuża zbyt krótki łuk, zachowując czytelny rozmiar liter.
 Gdy to nie wystarcza, zmniejsza litery. Może też zmniejszyć ozdobę,
-skorygować jej położenie albo dobrać kolumny
-i odstępy na A4. Korekta sprawdza wszystkie wzory, zachowując treść,
-liczbę kół i wybraną średnicę. Nie dodaje stron i wymaga ponownego sprawdzenia
+skorygować jej położenie albo zmniejszyć margines, gdy nawet jedno koło
+nie mieści się na kartce. Korekta sprawdza wszystkie wzory, zachowując treść,
+liczbę kół i wybraną średnicę. Wymaga ponownego sprawdzenia
 podglądu przed PDF. Gdy dopasowanie bez zmiany tych danych jest niemożliwe,
 pozostaje komunikat do ręcznej poprawy. Pustych pól program nie wypełnia sam.
 
@@ -148,6 +155,8 @@ Testy przeglądarki zapisują lokalne podglądy w `output/web-preview.png`,
 `output/web-preview-a4.png` i `output/web-preview-mobile.png`.
 Podglądy i ustawienia są archiwizowane w `output/history/`.
 Dodatkowy podgląd wszystkich nowych ozdób to `output/web-ozdoby.png`.
+Podglądy wielu stron są w `output/web-multipage-1.png`,
+`output/web-multipage-3.png` i `output/web-multipage-mobile.png`.
 
 ```bash
 npm ci --ignore-scripts
@@ -195,4 +204,7 @@ obrazów, pustych pól, widoku A4 i otwartych sekcji oraz brak przewijania
 poziomego na ekranach 1366, 390 i 320 pikseli.
 Kontrola eksportów sprawdza format A4, liczbę kół, średnice 37 i 40 mm,
 identyczność kopii, piksele RGB i maskę alfa między PNG i PDF oraz DPI PNG.
+Obejmuje też 65 numerów na trzech stronach i kopie wzorów na dwóch stronach,
+bez pustych kartek, utraty kolejności i zmiany średnicy. Testy podglądu
+sprawdzają przyciski stron, odtwarzanie wybranej strony i ekran telefonu.
 PDF-y testowe powstają wyłącznie w katalogu tymczasowym, poza `output/`.

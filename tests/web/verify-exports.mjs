@@ -66,18 +66,9 @@ function dpiFromPng(bytes) {
   assert.fail('Brak metadanych DPI w PNG');
 }
 
-for (const [name, count, diameter] of [
-  ['roles-test.pdf', 4, 37],
-  ['numbers-test.pdf', 30, 37],
-  ['diameter40-test.pdf', 15, 40],
-]) {
-  const doc = await PDFDocument.load(await readFile(path.join(artifacts, name)));
-  assert.equal(doc.getPageCount(), 1, name);
-  const page = doc.getPages()[0];
+function verifyPage(doc, page, count, diameter) {
   assert.ok(Math.abs(page.getWidth() / mm - 210) < 0.001, 'Szerokość A4');
   assert.ok(Math.abs(page.getHeight() / mm - 297) < 0.001, 'Wysokość A4');
-  const preferences = doc.catalog.lookup(PDFName.of('ViewerPreferences'));
-  assert.equal(preferences.lookup(PDFName.of('PrintScaling')).toString(), '/None');
   const contents = page.node.Contents();
   const streams =
     contents instanceof PDFArray
@@ -97,38 +88,81 @@ for (const [name, count, diameter] of [
       (values) =>
         Math.abs(values[0] / mm - diameter) < 0.001 && Math.abs(values[3] / mm - diameter) < 0.001,
     );
-  assert.equal(draws.length, count, name);
-  assert.equal(transforms.length, count, name);
-  if (name === 'roles-test.pdf') {
-    assert.equal(draws[0], draws[1]);
-    assert.equal(draws[2], draws[3]);
-    assert.notEqual(draws[0], draws[2]);
-    const objects = page.node.Resources().lookup(PDFName.of('XObject'));
-    for (const [imageName, pngName] of [
-      [draws[0], 'prezes.png'],
-      [draws[2], 'skarbnik.png'],
-    ]) {
-      const expected = PNG.sync.read(await readFile(path.join(artifacts, pngName)));
-      const rgb = new Uint8Array(expected.width * expected.height * 3),
-        alpha = new Uint8Array(expected.width * expected.height);
-      for (let i = 0; i < alpha.length; i++) {
-        rgb.set(expected.data.subarray(i * 4, i * 4 + 3), i * 3);
-        alpha[i] = expected.data[i * 4 + 3];
-      }
-      const image = objects.lookup(PDFName.of(imageName.slice(1)));
-      assert.equal(
-        Buffer.compare(Buffer.from(imagePixels(image)), rgb),
-        0,
-        `Piksele RGB: ${pngName}`,
-      );
-      assert.equal(
-        Buffer.compare(Buffer.from(imagePixels(image.dict.lookup(PDFName.of('SMask')))), alpha),
-        0,
-        `Maska alfa: ${pngName}`,
-      );
-    }
+  assert.equal(draws.length, count, 'Liczba kół na stronie');
+  assert.equal(transforms.length, count, 'Każde koło ma wybraną średnicę');
+  for (const values of transforms) {
+    const x = values[4] / mm;
+    const y = values[5] / mm;
+    assert(x >= 10 - 0.001 && x + diameter <= 200 + 0.001, 'Marginesy poziome');
+    assert(y >= 10 - 0.001 && y + diameter <= 287 + 0.001, 'Marginesy pionowe');
   }
-  console.log(`${name}: A4, liczba kół ${count}, średnica ${diameter} mm, druk 100%.`);
+  return draws;
+}
+
+async function comparePng(page, imageName, pngName) {
+  const objects = page.node.Resources().lookup(PDFName.of('XObject'));
+  const bytes = await readFile(path.join(artifacts, pngName));
+  const expected = PNG.sync.read(bytes);
+  assert.ok(dpiFromPng(bytes).every((value) => Math.abs(value - 600) < 0.1));
+  const rgb = new Uint8Array(expected.width * expected.height * 3),
+    alpha = new Uint8Array(expected.width * expected.height);
+  for (let i = 0; i < alpha.length; i++) {
+    rgb.set(expected.data.subarray(i * 4, i * 4 + 3), i * 3);
+    alpha[i] = expected.data[i * 4 + 3];
+  }
+  const image = objects.lookup(PDFName.of(imageName.slice(1)));
+  assert.equal(Buffer.compare(Buffer.from(imagePixels(image)), rgb), 0, `Piksele RGB: ${pngName}`);
+  assert.equal(
+    Buffer.compare(Buffer.from(imagePixels(image.dict.lookup(PDFName.of('SMask')))), alpha),
+    0,
+    `Maska alfa: ${pngName}`,
+  );
+}
+
+for (const [name, counts, diameter] of [
+  ['roles-test.pdf', [4], 37],
+  ['numbers-test.pdf', [30], 37],
+  ['diameter40-test.pdf', [15], 40],
+  ['multipage-numbers-test.pdf', [24, 24, 17], 40],
+  ['multipage-copies-test.pdf', [12, 3], 37],
+]) {
+  const doc = await PDFDocument.load(await readFile(path.join(artifacts, name)));
+  assert.equal(doc.getPageCount(), counts.length, name);
+  const preferences = doc.catalog.lookup(PDFName.of('ViewerPreferences'));
+  assert.equal(preferences.lookup(PDFName.of('PrintScaling')).toString(), '/None');
+  const pages = doc.getPages();
+  const draws = pages.map((page, index) => verifyPage(doc, page, counts[index], diameter));
+  if (name === 'roles-test.pdf') {
+    assert.equal(draws[0][0], draws[0][1]);
+    assert.equal(draws[0][2], draws[0][3]);
+    assert.notEqual(draws[0][0], draws[0][2]);
+    await comparePng(pages[0], draws[0][0], 'prezes.png');
+    await comparePng(pages[0], draws[0][2], 'skarbnik.png');
+  }
+  if (name === 'multipage-numbers-test.pdf') {
+    assert.equal(new Set(draws.flat()).size, 65, 'Wszystkie numery są różne');
+    for (const [pageIndex, labelIndex, file] of [
+      [0, 0, 'first'],
+      [0, 23, '24'],
+      [1, 0, '25'],
+      [2, 16, 'last'],
+    ])
+      await comparePng(pages[pageIndex], draws[pageIndex][labelIndex], `numbers40-${file}.png`);
+  }
+  if (name === 'multipage-copies-test.pdf') {
+    assert(
+      draws[0].every((image) => image === draws[0][0]),
+      'Pierwsze 12 kopii jest identyczne',
+    );
+    assert.equal(draws[1][0], draws[0][0], 'Trzynasta kopia przechodzi na kolejną stronę');
+    assert.equal(draws[1][1], draws[1][2]);
+    assert.notEqual(draws[1][0], draws[1][1]);
+    await comparePng(pages[1], draws[1][0], 'prezes.png');
+    await comparePng(pages[1], draws[1][1], 'skarbnik.png');
+  }
+  console.log(
+    `${name}: ${counts.length} stron A4, koła na stronach ${counts.join(' + ')}, średnica ${diameter} mm, druk 100%.`,
+  );
 }
 
 for (const name of ['prezes.png', 'skarbnik.png', 'custom.png']) {

@@ -243,15 +243,15 @@
           <details id="layout-options" class="panel">
             <summary>Rozmieszczenie kół na kartce A4</summary>
             <p class="help">
-              Wszystkie koła muszą zmieścić się na jednej kartce. Ich średnica pozostaje taka, jak
-              podano wyżej.
+              Gdy koła nie mieszczą się na jednej kartce, program dodaje kolejne strony A4. Średnica
+              pozostaje taka, jak podano wyżej. Zbyt szeroki rząd jest dzielony.
             </p>
             <button id="fit-columns" type="button" class="button secondary">
               Dobierz liczbę kolumn do kartki
             </button>
             <div class="field-row">
               <div>
-                <label for="columns">Liczba kolumn</label
+                <label for="columns">Maksymalna liczba kolumn na stronie</label
                 ><input id="columns" data-field="layout.columns" type="number" min="1" max="30" />
               </div>
               <div>
@@ -306,6 +306,23 @@
               </button>
               <button id="view-sheet" type="button" aria-pressed="false">Cała kartka A4</button>
             </div>
+            <div
+              id="page-navigation"
+              class="page-navigation"
+              role="group"
+              aria-label="Strony podglądu A4"
+              hidden
+            >
+              <p id="page-counter" role="status" aria-live="polite">Strona 1 z 1</p>
+              <div class="page-buttons">
+                <button id="previous-page" type="button" class="button secondary">
+                  Poprzednia strona
+                </button>
+                <button id="next-page" type="button" class="button secondary">
+                  Następna strona
+                </button>
+              </div>
+            </div>
             <div id="preview-stage" class="preview-stage">
               <canvas
                 id="preview-canvas"
@@ -336,8 +353,8 @@
               Do drukowania wybierz <strong>PDF A4</strong>. PNG to obraz jednego, wybranego koła.
             </p>
             <label class="check-label approval"
-              ><input id="approve" type="checkbox" disabled />Sprawdziłem podgląd. Można przygotować
-              PDF.</label
+              ><input id="approve" type="checkbox" disabled />Sprawdziłem podgląd wszystkich stron.
+              Można przygotować PDF.</label
             >
             <div class="export-buttons">
               <button id="download-png" class="button secondary" type="button" disabled>

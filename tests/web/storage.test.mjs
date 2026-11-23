@@ -34,6 +34,7 @@ test('Powrót odtwarza teksty, kopie, kolory, średnicę i obraz', () => {
   assert.equal(
     saveSession(storage, key, project, {
       selectedIndex: 2,
+      selectedPage: 1,
       view: 'sheet',
       openSections: ['layout-options'],
     }).saved,
@@ -42,6 +43,7 @@ test('Powrót odtwarza teksty, kopie, kolory, średnicę i obraz', () => {
   const saved = loadSession(storage, key, defaults);
   assert.deepEqual(saved.project, project);
   assert.equal(saved.ui.selectedIndex, 2);
+  assert.equal(saved.ui.selectedPage, 1);
   assert.equal(saved.ui.view, 'sheet');
   assert.deepEqual(saved.ui.openSections, ['layout-options']);
   assert.equal(saved.restored, true);
@@ -66,6 +68,7 @@ test('Poprzedni zapis samych ustawień nadal się otwiera', () => {
   const saved = loadSession(storage, key, defaults);
   assert.equal(saved.restored, true);
   assert.deepEqual(saved.project, defaults);
+  assert.equal(saved.ui.selectedPage, 0);
 });
 
 test('Uszkodzony zapis i niebezpieczny adres obrazka nie blokują aplikacji', () => {

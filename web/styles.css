@@ -482,6 +482,24 @@ details[open] > summary {
   background: white;
   min-height: 280px;
 }
+.page-navigation {
+  margin-top: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.page-navigation p {
+  margin: 0 0 0.5rem;
+  text-align: center;
+  font-weight: 700;
+}
+.page-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.page-buttons button {
+  padding: 0.5rem;
+}
 .preview-stage canvas {
   display: block;
   width: min(100%, 340px);

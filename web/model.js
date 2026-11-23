@@ -185,7 +185,7 @@ export function fitColumns(project) {
     Math.min(
       labelCount(project),
       Math.floor(
-        (PAGE.width - project.layout.margin * 2 + project.layout.gapX) /
+        (PAGE.width - project.layout.margin * 2 + project.layout.gapX + 1e-7) /
           (project.diameterMm + project.layout.gapX),
       ),
     ),
@@ -194,32 +194,62 @@ export function fitColumns(project) {
 
 export function calculateLayout(project) {
   const labels = expandLabels(project);
-  const cols = Math.min(project.layout.columns, labels.length);
-  const rows = Math.ceil(labels.length / cols);
-  const width = cols * project.diameterMm + (cols - 1) * project.layout.gapX;
-  const height = rows * project.diameterMm + (rows - 1) * project.layout.gapY;
   const availableWidth = PAGE.width - 2 * project.layout.margin;
   const availableHeight = PAGE.height - 2 * project.layout.margin;
-  if (width > availableWidth + 1e-7 || height > availableHeight + 1e-7) {
+  const diameter = project.diameterMm;
+  if (diameter > availableWidth + 1e-7 || diameter > availableHeight + 1e-7) {
     throw new FitError(
       'page-layout',
-      `Układ ${Math.round(width)} × ${Math.round(height)} mm nie mieści się na A4. Zmień kolumny, odstępy lub liczbę kół. Średnica pozostaje ${project.diameterMm} mm.`,
+      `Koło o średnicy ${diameter} mm nie mieści się na A4 z wybranymi marginesami. Zmniejsz marginesy.`,
     );
   }
-  const top = project.layout.margin + (availableHeight - height) / 2;
-  const placements = labels.map((label, i) => {
-    const row = Math.floor(i / cols);
-    const rowCount = Math.min(cols, labels.length - row * cols);
-    const rowWidth = rowCount * project.diameterMm + (rowCount - 1) * project.layout.gapX;
-    return {
-      label,
-      index: i,
-      x: (PAGE.width - rowWidth) / 2 + (i % cols) * (project.diameterMm + project.layout.gapX),
-      y: top + row * (project.diameterMm + project.layout.gapY),
-      diameterMm: project.diameterMm,
-    };
-  });
-  return { labels, placements, columns: cols, rows, width, height };
+  // Wybrane kolumny są maksimum. Każde koło musi zmieścić się w całości.
+  const columns = Math.min(project.layout.columns, fitColumns(project), labels.length);
+  const rowsPerPage = Math.floor(
+    (availableHeight + project.layout.gapY + 1e-7) / (diameter + project.layout.gapY),
+  );
+  const capacity = columns * rowsPerPage;
+  const pages = [];
+  for (let start = 0; start < labels.length; start += capacity) {
+    const pageLabels = labels.slice(start, start + capacity);
+    const pageColumns = Math.min(columns, pageLabels.length);
+    const rows = Math.ceil(pageLabels.length / pageColumns);
+    const width = pageColumns * diameter + (pageColumns - 1) * project.layout.gapX;
+    const height = rows * diameter + (rows - 1) * project.layout.gapY;
+    const top = (PAGE.height - height) / 2;
+    const pageIndex = pages.length;
+    const placements = pageLabels.map((label, index) => {
+      const row = Math.floor(index / pageColumns);
+      const rowCount = Math.min(pageColumns, pageLabels.length - row * pageColumns);
+      const rowWidth = rowCount * diameter + (rowCount - 1) * project.layout.gapX;
+      return {
+        label,
+        index: start + index,
+        pageIndex,
+        x: (PAGE.width - rowWidth) / 2 + (index % pageColumns) * (diameter + project.layout.gapX),
+        y: top + row * (diameter + project.layout.gapY),
+        diameterMm: diameter,
+      };
+    });
+    pages.push({
+      index: pageIndex,
+      labels: pageLabels,
+      placements,
+      columns: pageColumns,
+      rows,
+      width,
+      height,
+    });
+  }
+  return {
+    labels,
+    placements: pages.flatMap((page) => page.placements),
+    pages,
+    columns,
+    rows: pages[0].rows,
+    width: pages[0].width,
+    height: pages[0].height,
+  };
 }
 
 export function resizeDiameter(project, diameter) {

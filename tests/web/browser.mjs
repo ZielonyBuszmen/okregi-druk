@@ -6,6 +6,7 @@ import path from 'node:path';
 import { createServer } from '../../tools/serve-web.mjs';
 import { checkEditorImprovements } from './editor-checks.mjs';
 import { archivePreview } from './preview-history.mjs';
+import { checkPagination } from './pagination-checks.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const artifacts = process.env.OKREGI_TEST_ARTIFACTS || '/tmp/okregi-web-tests';
@@ -106,9 +107,9 @@ try {
   await valid();
   await exportPdf('numbers-test.pdf');
   await page.locator('#diameter').fill('40');
-  await page.waitForFunction(() => !document.querySelector('#preview-error').hidden);
-  assert.match(await page.locator('#preview-error').textContent(), /nie mieści się na A4/);
-  assert.equal(await page.locator('#download-png').isDisabled(), true);
+  await valid();
+  assert.match(await page.locator('#count-label').textContent(), /2 strony A4/);
+  assert.equal(await page.locator('#approve').isChecked(), false);
   await page.locator('#end-number').fill('15');
   await valid();
   assert.equal(await page.locator('#preview-select option').count(), 15);
@@ -202,6 +203,7 @@ try {
   assert.equal(await page.locator('#preview-select option').count(), 4);
   assert.equal(await page.locator('#approve').isChecked(), false);
   await checkEditorImprovements(page, root, artifacts);
+  await checkPagination(page, root, { saveDownload, exportPdf });
   await resetRoles();
   await page.locator('#view-label').click();
   await page.locator('#appearance-options').evaluate((section) => (section.open = false));

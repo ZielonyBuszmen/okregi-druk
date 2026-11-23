@@ -118,22 +118,18 @@ export async function checkEditorImprovements(page, root, artifacts) {
   assert.equal(longTitle.style.topSpan, 180);
   assert(longTitle.style.ringFontMm < before.style.ringFontMm);
 
-  // Układ da się poprawić odstępami, bez zmniejszania średnicy i liczby kół.
+  // Nadmiar kół przechodzi na kolejne strony bez zmiany ustawień.
   await fresh();
   await page.locator('#end-number').fill('31');
-  await page.waitForFunction(() => !document.querySelector('#auto-fix').hidden);
-  await page.locator('#auto-fix').click();
   await valid();
   assert.equal((await savedProject()).end, 31);
   assert.equal((await savedProject()).diameterMm, 37);
   assert.equal(await page.locator('#preview-select option').count(), 31);
+  assert.equal((await savedProject()).layout.gapY, 4);
+  assert.match(await page.locator('#count-label').textContent(), /2 strony A4/);
   await page.locator('#diameter').fill('40');
-  await page.waitForFunction(() => !document.querySelector('#preview-error').hidden);
-  assert.equal(
-    await page.locator('#auto-fix').isHidden(),
-    true,
-    'Niemożliwy układ nie oferuje korekty',
-  );
+  await valid();
+  assert.match(await page.locator('#count-label').textContent(), /2 strony A4/);
   await page.locator('#end-number').fill('15');
   await valid();
 
