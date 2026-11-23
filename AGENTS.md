@@ -12,12 +12,13 @@
   Zachowuj prosty wygląd bez ozdobnych efektów.
 - Każdą zmianę ustawień zapisuj w localStorage przed walidacją podglądu.
   Przywracaj także własne obrazy, niedokończone pola i widok interfejsu.
-  Nie zapamiętuj akceptacji PDF. Zgłaszaj rzeczywiste błędy zapisu.
+  Zgłaszaj rzeczywiste błędy zapisu.
 - Po zmianach wizualnych generuj wyłącznie podglądy w Dockerze przez Playwright
   i obejrzyj PNG. Podaj klikalną ścieżkę do `output/web-preview.png`.
-- Finalny PDF generuj wyłącznie po wyraźnej akceptacji użytkownika.
-  W aplikacji wymagana jest akceptacja aktualnego podglądu przed pobraniem PDF.
-  Udany podgląd nie jest akceptacją.
+- Przycisk pobierania PDF ma być dostępny bez checkboxa i zatwierdzania podglądu.
+  Kliknięcie sprawdza aktualne ustawienia, także tuż po edycji. Nie eksportuj
+  starej wersji projektu przy błędnych polach. Podczas generowania blokuj
+  ponowne kliknięcie; przy błędzie pokaż komunikat i przywróć dostępność.
 - Testy mogą tworzyć tymczasowe PDF-y poza `output/`; nie są to finalne arkusze.
 - Podglądy i ustawienia archiwizuj w `output/history/`.
 - Nie nadpisuj obrazków użytkownika w `input/` ani wcześniejszych eksportów.

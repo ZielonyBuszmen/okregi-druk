@@ -10,7 +10,7 @@ Generowanie odbywa się w przeglądarce, bez konta i wysyłania obrazów.
 - Monety, wędki z wieńcem, 10 wesołych ozdób wędkarskich lub własne obrazy
   PNG/JPG/WEBP do 2 MB.
 - Kolory, rozmiary, rozstaw liter, przesunięcia i rozmieszczenie na A4.
-- Podgląd koła i arkusza, eksport PNG oraz PDF po akceptacji podglądu.
+- Podgląd koła i arkusza, eksport PNG oraz PDF bez dodatkowego zatwierdzania.
 - Zapis i wczytywanie projektu JSON wraz z własnymi obrazami.
 
 Interfejs używa dużych liter (18 px), wyraźnych obramowań i zwykłych przycisków.
@@ -27,8 +27,10 @@ Przykładowo 30 kół o średnicy 40 mm przy czterech kolumnach daje 24 koła
 na pierwszej stronie i 6 na drugiej. Podgląd „Strony A4” ma licznik oraz
 przyciski poprzedniej i następnej strony. Zapamiętuje również wybraną stronę.
 Wszystkie strony trafiają do jednego PDF, a PNG nadal zawiera wybrane koło.
-Tekst i ozdoby muszą mieścić się wewnątrz koła. Każda zmiana ustawień
-zeruje akceptację podglądu do PDF; przed eksportem sprawdź wszystkie strony.
+Przycisk PDF jest dostępny bez checkboxa i zatwierdzania podglądu.
+Po kliknięciu sprawdza najnowsze ustawienia, także od razu po ich wpisaniu.
+Przy błędnym projekcie pokazuje komunikat zamiast eksportować poprzednią wersję.
+Podczas przygotowywania pliku jest chwilowo wyłączony, aby nie powielać eksportu.
 
 Nowy projekt zaczyna od kolejnych numerów 1–30 o średnicy 37 mm.
 Po wybraniu „Własny tekst” dostępne są wzory PREZES i SKARBNIK KOŁA,
@@ -43,8 +45,7 @@ Najpierw wydłuża zbyt krótki łuk, zachowując czytelny rozmiar liter.
 Gdy to nie wystarcza, zmniejsza litery. Może też zmniejszyć ozdobę,
 skorygować jej położenie albo zmniejszyć margines, gdy nawet jedno koło
 nie mieści się na kartce. Korekta sprawdza wszystkie wzory, zachowując treść,
-liczbę kół i wybraną średnicę. Wymaga ponownego sprawdzenia
-podglądu przed PDF. Gdy dopasowanie bez zmiany tych danych jest niemożliwe,
+liczbę kół i wybraną średnicę. Gdy dopasowanie bez zmiany tych danych jest niemożliwe,
 pozostaje komunikat do ręcznej poprawy. Pustych pól program nie wypełnia sam.
 
 ## Uruchomienie
@@ -197,7 +198,7 @@ domyślny katalog plików to `/tmp/okregi-web-tests`, nadpisywany zmienną
 `OKREGI_TEST_ARTIFACTS`.
 
 Testy obejmują oba tryby edycji, zmianę średnicy, własne obrazy, obsługę klawiaturą,
-dodawanie/usuwanie wzoru, zapis/wczytanie, ponowną akceptację po zmianach,
+dodawanie/usuwanie wzoru, zapis/wczytanie, eksport PDF bez zatwierdzania,
 ekran telefonu i ścieżkę projektu GitHub Pages.
 Sprawdzają również zamknięcie i ponowne otwarcie karty, przywracanie własnych
 obrazów, pustych pól, widoku A4 i otwartych sekcji oraz brak przewijania

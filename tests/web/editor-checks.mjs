@@ -105,7 +105,7 @@ export async function checkEditorImprovements(page, root, artifacts) {
   assert.equal(after.bottom, before.bottom);
   assert.equal(after.end, before.end);
   assert.deepEqual(after.rows, before.rows);
-  assert.equal(await page.locator('#approve').isChecked(), false);
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
   await page.reload();
   await valid();
   assert.equal((await savedProject()).style.ringFontMm, after.style.ringFontMm);
@@ -160,7 +160,7 @@ export async function checkEditorImprovements(page, root, artifacts) {
   await page.locator('#auto-fix').click();
   await valid();
   assert.equal((await savedProject()).style.textRadiusMm, radiusBeforeCorrection);
-  assert.equal(await page.locator('#approve').isChecked(), false);
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
   await page.locator('.text-row textarea').first().fill('');
   await page.waitForFunction(() => !document.querySelector('#preview-error').hidden);
   assert.equal(

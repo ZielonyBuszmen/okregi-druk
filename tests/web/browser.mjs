@@ -34,8 +34,9 @@ async function saveDownload(button, name) {
   await download.saveAs(path.join(artifacts, name));
 }
 async function exportPdf(name) {
-  await page.locator('#approve').check();
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
   await saveDownload('#download-pdf', name);
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
 }
 
 async function resetRoles() {
@@ -74,10 +75,11 @@ try {
   assert.equal(await page.locator('[name=mode][value=numbers]').isChecked(), true);
   assert.equal(await page.locator('#preview-select option').count(), 30);
   assert.equal(await page.locator('#preset-roles').count(), 0);
+  assert.equal(await page.locator('#approve').count(), 0);
   await page.locator('[name=mode][value=text]').check();
   await valid();
   assert.equal(await page.locator('#preview-select option').count(), 4);
-  assert.equal(await page.locator('#download-pdf').isDisabled(), true);
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
   assert.equal(await page.locator('#top-text').inputValue(), 'KOMOROWO');
   assert.equal(await page.locator('#diameter').inputValue(), '37');
   assert.equal(
@@ -96,9 +98,9 @@ try {
   await page.screenshot({ path: path.join(root, 'output/web-preview-a4.png'), fullPage: true });
   await exportPdf('roles-test.pdf');
   await page.locator('#top-text').fill('NOWY NAPIS');
-  assert.equal(await page.locator('#download-pdf').isDisabled(), true);
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
   await valid();
-  assert.equal(await page.locator('#approve').isChecked(), false);
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
 
   await page.locator('[name=mode][value=numbers]').check();
   await valid();
@@ -109,11 +111,12 @@ try {
   await page.locator('#diameter').fill('40');
   await valid();
   assert.match(await page.locator('#count-label').textContent(), /2 strony A4/);
-  assert.equal(await page.locator('#approve').isChecked(), false);
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
   await page.locator('#end-number').fill('15');
+  // Pobierz od razu po zmianie: PDF ma zawierać 15, a nie poprzednie 30 kół.
+  await exportPdf('diameter40-test.pdf');
   await valid();
   assert.equal(await page.locator('#preview-select option').count(), 15);
-  await exportPdf('diameter40-test.pdf');
 
   await resetRoles();
   await page.locator('#view-label').click();
@@ -160,7 +163,7 @@ try {
   assert.equal(await page.locator('#appearance-options').getAttribute('open'), '');
   assert.equal(await page.locator('#layout-options').getAttribute('open'), '');
   assert.match(await page.locator('.custom-status').first().textContent(), /own.png/);
-  assert.equal(await page.locator('#approve').isChecked(), false);
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
   await saveDownload('#save-project', 'project.json');
   const saved = JSON.parse(await readFile(path.join(artifacts, 'project.json')));
   assert.equal(saved.rows[0].decoration, 'custom');
@@ -201,7 +204,7 @@ try {
   await page.reload();
   await valid();
   assert.equal(await page.locator('#preview-select option').count(), 4);
-  assert.equal(await page.locator('#approve').isChecked(), false);
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
   await checkEditorImprovements(page, root, artifacts);
   await checkPagination(page, root, { saveDownload, exportPdf });
   await resetRoles();
@@ -256,7 +259,7 @@ try {
   await phone.locator('#auto-fix').click();
   await phone.waitForFunction(() => !document.querySelector('#download-png').disabled);
   assert.equal(await phone.locator('#diameter').inputValue(), '37');
-  assert.equal(await phone.locator('#approve').isChecked(), false);
+  assert.equal(await phone.locator('#download-pdf').isDisabled(), false);
   await mobile.close();
 
   const settings = await page.evaluate(
@@ -285,7 +288,7 @@ try {
   assert.deepEqual(externalRequests, []);
   await rm(path.join(root, 'output/web-error.png'), { force: true });
   console.log(
-    'Przeglądarka OK: tekst i numery, własny obraz, PNG, testowe PDF-y, zapis/wczytanie, reset akceptacji, A4, mobile i ścieżka GitHub Pages.',
+    'Przeglądarka OK: tekst i numery, własny obraz, PNG, testowe PDF-y, zapis/wczytanie, PDF bez zatwierdzania, A4, mobile i ścieżka GitHub Pages.',
   );
 } catch (error) {
   if (page)

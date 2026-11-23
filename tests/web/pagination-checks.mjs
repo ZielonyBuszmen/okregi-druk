@@ -39,7 +39,7 @@ export async function checkPagination(page, root, { saveDownload, exportPdf }) {
   await valid();
   assert.equal(await page.locator('#page-counter').textContent(), 'Strona 3 z 3');
   assert.equal(await page.locator('#view-sheet').getAttribute('aria-pressed'), 'true');
-  assert.equal(await page.locator('#approve').isChecked(), false);
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
   await page.locator('#previous-page').click();
   assert.equal(await page.locator('#page-counter').textContent(), 'Strona 2 z 3');
   for (const [index, name] of [
@@ -65,7 +65,7 @@ export async function checkPagination(page, root, { saveDownload, exportPdf }) {
   await valid();
   assert.equal(await page.locator('#page-counter').textContent(), 'Strona 2 z 2');
   assert.equal(await page.locator('#next-page').isDisabled(), true);
-  assert.equal(await page.locator('#approve').isChecked(), false);
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
   await page.locator('#end-number').fill('24');
   await valid();
   assert.equal(await page.locator('#page-navigation').isHidden(), true);
@@ -83,10 +83,20 @@ export async function checkPagination(page, root, { saveDownload, exportPdf }) {
   await exportPdf('multipage-copies-test.pdf');
   await page.locator('.text-row textarea').nth(1).fill('ZBYT DŁUGI TEKST W DRUGIM WZORZE');
   await page.waitForFunction(() => !document.querySelector('#auto-fix').hidden);
-  assert.equal(await page.locator('#download-pdf').isDisabled(), true);
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
+  const unexpectedDownloads = [];
+  const collectDownload = (download) => unexpectedDownloads.push(download);
+  page.on('download', collectDownload);
+  await page.locator('#download-pdf').click();
+  await page.waitForFunction(() =>
+    document.querySelector('#notice').textContent.startsWith('Nie można przygotować PDF.'),
+  );
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
+  assert.equal(unexpectedDownloads.length, 0, 'Błędny projekt nie eksportuje poprzednich ustawień');
+  page.off('download', collectDownload);
   await page.locator('#auto-fix').click();
   await valid();
-  assert.equal(await page.locator('#approve').isChecked(), false);
+  assert.equal(await page.locator('#download-pdf').isDisabled(), false);
 
   // Nawigacja stron pozostaje czytelna i działa na najmniejszym ekranie.
   await page.setViewportSize({ width: 320, height: 740 });
