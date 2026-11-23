@@ -96,7 +96,10 @@ export async function checkEditorImprovements(page, root, artifacts) {
   await page.locator('#auto-fix').click();
   await valid();
   const after = await savedProject();
-  assert(after.style.ringFontMm < before.style.ringFontMm);
+  assert.equal(after.style.ringFontMm, before.style.ringFontMm);
+  assert(after.style.topSpan > before.style.topSpan);
+  assert.equal(after.style.bottomSpan, before.style.bottomSpan);
+  assert.equal(after.style.textRadiusMm, before.style.textRadiusMm);
   assert.equal(after.diameterMm, before.diameterMm);
   assert.equal(after.top, before.top);
   assert.equal(after.bottom, before.bottom);
@@ -106,6 +109,14 @@ export async function checkEditorImprovements(page, root, artifacts) {
   await page.reload();
   await valid();
   assert.equal((await savedProject()).style.ringFontMm, after.style.ringFontMm);
+  await page.locator('#top-text').fill('W'.repeat(80));
+  await page.waitForFunction(() => !document.querySelector('#auto-fix').hidden);
+  await page.locator('#auto-fix').click();
+  await valid();
+  const longTitle = await savedProject();
+  assert.equal(longTitle.top, 'W'.repeat(80));
+  assert.equal(longTitle.style.topSpan, 180);
+  assert(longTitle.style.ringFontMm < before.style.ringFontMm);
 
   // Układ da się poprawić odstępami, bez zmniejszania średnicy i liczby kół.
   await fresh();
@@ -148,9 +159,11 @@ export async function checkEditorImprovements(page, root, artifacts) {
   await valid();
   assert((await savedProject()).style.decorationMm < 60);
   await page.locator('#ring-size').fill('12');
+  const radiusBeforeCorrection = (await savedProject()).style.textRadiusMm;
   await page.waitForFunction(() => !document.querySelector('#auto-fix').hidden);
   await page.locator('#auto-fix').click();
   await valid();
+  assert.equal((await savedProject()).style.textRadiusMm, radiusBeforeCorrection);
   assert.equal(await page.locator('#approve').isChecked(), false);
   await page.locator('.text-row textarea').first().fill('');
   await page.waitForFunction(() => !document.querySelector('#preview-error').hidden);

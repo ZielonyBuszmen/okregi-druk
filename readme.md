@@ -32,7 +32,9 @@ w okularach, wesoły robak, kalosz, śpiący spławik, puchar, szczęśliwy hacz
 żaba na urlopie, kapitan kaczka i wiaderko nadziei.
 
 Przy błędzie dopasowania pojawia się przycisk „Popraw automatycznie”.
-Zmniejsza litery lub ozdobę, koryguje ich położenie albo dobiera kolumny
+Najpierw wydłuża zbyt krótki łuk, zachowując czytelny rozmiar liter.
+Gdy to nie wystarcza, zmniejsza litery. Może też zmniejszyć ozdobę,
+skorygować jej położenie albo dobrać kolumny
 i odstępy na A4. Korekta sprawdza wszystkie wzory, zachowując treść,
 liczbę kół i wybraną średnicę. Nie dodaje stron i wymaga ponownego sprawdzenia
 podglądu przed PDF. Gdy dopasowanie bez zmiany tych danych jest niemożliwe,
