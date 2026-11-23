@@ -1,5 +1,5 @@
 import { calculateLayout, FitError, labelCount, PAGE } from './model.js';
-import { renderLabel } from './renderer.js';
+import { renderLabel, minimumArcSpan } from './renderer.js';
 
 function fittingLayout(project) {
   const count = labelCount(project);
@@ -54,16 +54,38 @@ export function autoFitProject(project, images) {
         case 'page-layout':
           candidate.layout = fittingLayout(candidate);
           break;
-        case 'ring-bounds':
-          style.ringFontMm = smaller(style.ringFontMm);
-          style.textRadiusMm = Math.min(
-            style.textRadiusMm,
-            candidate.diameterMm / 2 - style.borderMm - style.ringFontMm / 2 - 0.1,
+        case 'ring-bounds': {
+          const outerRadius = candidate.diameterMm / 2 - style.borderMm;
+          if (style.textRadiusMm >= outerRadius - 0.1)
+            style.textRadiusMm = Math.max(
+              0.1,
+              Math.min(outerRadius * 0.85, (style.innerRadiusMm + outerRadius) / 2),
+            );
+          style.ringFontMm = Math.max(
+            0.1,
+            Math.min(smaller(style.ringFontMm), (outerRadius - style.textRadiusMm) * 2 - 0.1),
           );
           break;
-        case 'arc-text':
-          style.ringFontMm = smaller(style.ringFontMm);
+        }
+        case 'arc-text': {
+          // Najpierw zachowaj czytelne litery, wydłużając tylko za krótki łuk.
+          let expanded = false;
+          for (const [text, field] of [
+            [candidate.top, 'topSpan'],
+            [candidate.bottom, 'bottomSpan'],
+          ]) {
+            const required = Math.min(
+              180,
+              Math.ceil(minimumArcSpan(text, style.ringFontMm, style.textRadiusMm)),
+            );
+            if (required > style[field]) {
+              style[field] = required;
+              expanded = true;
+            }
+          }
+          if (!expanded) style.ringFontMm = smaller(style.ringFontMm);
           break;
+        }
         case 'center-text':
           style.fontMm = smaller(style.fontMm);
           style.lineSpacingMm *= 0.92;

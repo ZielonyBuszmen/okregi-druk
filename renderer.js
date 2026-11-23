@@ -168,6 +168,15 @@ function ensureRectFits(x0, y0, x1, y1, center, radius, message, code) {
     throw new FitError(code, message);
 }
 
+export function minimumArcSpan(text, fontMm, radius) {
+  const width = Array.from(text).reduce(
+    (sum, char) => sum + getTextMeasurements(char, fontMm).width,
+    0,
+  );
+  // Niewielki zapas pozostawia odstępy między literami po dopasowaniu.
+  return (width * 1.04 * 180) / (Math.PI * radius);
+}
+
 function curvedText(ctx, text, radius, span, center, bottom, fontMm, color) {
   if (!text) return;
   ctx.font = `700 ${fontMm}px ${FONT}`;
