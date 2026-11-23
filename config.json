@@ -4,7 +4,7 @@
   "bottom": "Koło PZW Nr-34",
   "diameterMm": 37,
   "dpi": 600,
-  "mode": "text",
+  "mode": "numbers",
   "start": 1,
   "end": 30,
   "rows": [
@@ -22,15 +22,15 @@
     }
   ],
   "layout": {
-    "columns": 2,
-    "gapX": 4,
+    "columns": 5,
+    "gapX": 1,
     "gapY": 4,
     "margin": 10
   },
   "style": {
     "color": "#100863",
     "accent": "#C49A3A",
-    "fontMm": 4.2,
+    "fontMm": 16.0333333,
     "ringFontMm": 3.021666666666667,
     "textRadiusMm": 15.355,
     "innerRadiusMm": 13.381666666666666,
@@ -40,7 +40,7 @@
     "bottomSpan": 132,
     "symbols": true,
     "lineSpacingMm": 1,
-    "textOffsetY": 2,
+    "textOffsetY": 0,
     "decorationMm": 12,
     "decorationOffsetY": -7,
     "rodsScale": 1.8

@@ -385,13 +385,25 @@ input[type='radio'] {
   margin-bottom: 0;
   overflow-wrap: anywhere;
 }
-.add-button,
-.preset-button {
+.add-button {
   width: 100%;
   margin-top: 0.5rem;
 }
-.preset-button {
-  font-weight: 400;
+.more-decorations {
+  margin-top: 0.75rem;
+}
+.more-decorations summary {
+  font-size: 1rem;
+}
+.more-decorations[open] > summary {
+  margin-bottom: 0.75rem;
+}
+.decoration-choice {
+  overflow-wrap: anywhere;
+}
+#auto-fix {
+  width: 100%;
+  margin: 0.5rem 0 1rem;
 }
 
 summary {

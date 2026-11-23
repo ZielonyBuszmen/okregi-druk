@@ -10,7 +10,22 @@ import {
 } from '../../web/model.js';
 
 const config = JSON.parse(await readFile(new URL('../../config.json', import.meta.url)));
-const project = () => parseProject(config);
+const project = () =>
+  parseProject({
+    ...config,
+    mode: 'text',
+    layout: { ...config.layout, columns: 2, gapX: 4 },
+    style: { ...config.style, fontMm: 4.2, textOffsetY: 2 },
+  });
+
+test('Nowy projekt zaczyna od numerów 1–30 i średnicy 37 mm', () => {
+  const layout = calculateLayout(parseProject(config));
+  assert.equal(config.mode, 'numbers');
+  assert.equal(layout.labels.length, 30);
+  assert.equal(layout.labels[0].text, '1');
+  assert.equal(layout.labels.at(-1).text, '30');
+  assert(layout.placements.every(({ diameterMm }) => diameterMm === 37));
+});
 
 test('Ustawienia początkowe zachowują cztery etykiety i dwa rodzaje ozdób', () => {
   const p = project(),

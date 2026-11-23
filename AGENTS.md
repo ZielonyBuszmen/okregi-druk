@@ -29,6 +29,9 @@
   checklisty i dzienniki postępu, zamiast powielać opis aplikacji.
 - Zachowaj jeden renderer Canvas dla podglądu, PNG i PDF. Nie skaluj automatycznie
   etykiet i nie dodawaj stron, gdy układ nie mieści się na A4.
+- Przycisk „Popraw automatycznie” może dopasować tekst, ozdoby i układ,
+  zachowując średnicę, treść oraz liczbę kół. Korektę sprawdzaj dla wszystkich
+  wzorów wspólnym rendererem i zapisuj dopiero po pełnym powodzeniu.
 - Komendy:
   - zależności testów i pakowania: `npm ci --ignore-scripts`
   - budowa: `npm run build`

@@ -1,9 +1,11 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
-import { mkdir, writeFile, readFile, copyFile, rm } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { createServer } from '../../tools/serve-web.mjs';
+import { checkEditorImprovements } from './editor-checks.mjs';
+import { archivePreview } from './preview-history.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const artifacts = process.env.OKREGI_TEST_ARTIFACTS || '/tmp/okregi-web-tests';
@@ -35,6 +37,14 @@ async function exportPdf(name) {
   await saveDownload('#download-pdf', name);
 }
 
+async function resetRoles() {
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await valid();
+  await page.locator('[name=mode][value=text]').check();
+  await valid();
+}
+
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1080 } });
   context.on('request', (request) => {
@@ -60,6 +70,11 @@ try {
           element.getBoundingClientRect().height >= 48,
       ),
   );
+  assert.equal(await page.locator('[name=mode][value=numbers]').isChecked(), true);
+  assert.equal(await page.locator('#preview-select option').count(), 30);
+  assert.equal(await page.locator('#preset-roles').count(), 0);
+  await page.locator('[name=mode][value=text]').check();
+  await valid();
   assert.equal(await page.locator('#preview-select option').count(), 4);
   assert.equal(await page.locator('#download-pdf').isDisabled(), true);
   assert.equal(await page.locator('#top-text').inputValue(), 'KOMOROWO');
@@ -99,8 +114,7 @@ try {
   assert.equal(await page.locator('#preview-select option').count(), 15);
   await exportPdf('diameter40-test.pdf');
 
-  await page.locator('#preset-roles').click();
-  await valid();
+  await resetRoles();
   await page.locator('#view-label').click();
   const imageData = await page.evaluate(() => {
     const c = document.createElement('canvas');
@@ -160,8 +174,7 @@ try {
   await page.locator('#import-file').setInputFiles(path.join(artifacts, 'invalid.json'));
   await page.waitForFunction(() => document.querySelector('#notice').classList.contains('error'));
   assert.equal(await page.locator('#top-text').inputValue(), 'MOJE KOŁO');
-  await page.locator('#preset-roles').click();
-  await valid();
+  await resetRoles();
   await page.locator('#add-row').click();
   await valid();
   await page.locator('[data-row-field=copies]').last().fill('');
@@ -183,12 +196,13 @@ try {
   assert.equal(await page.locator('#diameter').inputValue(), '');
   await page.locator('#diameter').fill('37');
   await valid();
-  await page.locator('#preset-roles').click();
-  await valid();
+  await resetRoles();
   await page.reload();
   await valid();
   assert.equal(await page.locator('#preview-select option').count(), 4);
   assert.equal(await page.locator('#approve').isChecked(), false);
+  await checkEditorImprovements(page, root, artifacts);
+  await resetRoles();
   await page.locator('#view-label').click();
   await page.locator('#appearance-options').evaluate((section) => (section.open = false));
   await page.locator('#layout-options').evaluate((section) => (section.open = false));
@@ -218,28 +232,40 @@ try {
     path: path.join(root, 'output/web-preview-mobile-full.png'),
     fullPage: true,
   });
+  await phone.locator('[name=mode][value=text]').check();
+  await phone.waitForFunction(() => !document.querySelector('#download-png').disabled);
+  const mobileGallery = phone.locator('.text-row').nth(1);
+  await mobileGallery.locator('.more-decorations > summary').click();
+  await mobileGallery.locator('[data-decoration=captain-duck]').click();
+  await phone.waitForFunction(() => !document.querySelector('#download-png').disabled);
+  assert.equal(await phone.locator('#preview-select').inputValue(), '2');
+  await mobileGallery.screenshot({ path: path.join(root, 'output/web-gallery-mobile.png') });
+  const gallerySettings = await phone.evaluate(
+    () => JSON.parse(localStorage.getItem(`okregi-project-v1:${location.pathname}`)).project,
+  );
+  await archivePreview(root, 'web-gallery-mobile', gallerySettings);
   await phone.setViewportSize({ width: 320, height: 740 });
   assert.equal(
     await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     true,
   );
+  await phone.locator('#top-text').fill('BARDZO DŁUGI NAPIS DLA KOŁA WĘDKARSKIEGO');
+  await phone.waitForFunction(() => !document.querySelector('#auto-fix').hidden);
+  await phone.locator('#auto-fix').click();
+  await phone.waitForFunction(() => !document.querySelector('#download-png').disabled);
+  assert.equal(await phone.locator('#diameter').inputValue(), '37');
+  assert.equal(await phone.locator('#approve').isChecked(), false);
   await mobile.close();
 
-  const history = path.join(root, 'output/history');
-  await mkdir(history, { recursive: true });
-  const stamp = new Date().toISOString().replaceAll(/[-:.]/g, '');
   const settings = await page.evaluate(
     () => JSON.parse(localStorage.getItem(`okregi-project-v1:${location.pathname}`)).project,
   );
   for (const name of ['web-preview', 'web-preview-a4', 'web-preview-mobile']) {
-    await copyFile(
-      path.join(root, `output/${name}.png`),
-      path.join(history, `${stamp}-${name}.png`),
-    );
-    await writeFile(
-      path.join(history, `${stamp}-${name}.json`),
-      JSON.stringify({ kind: name, project: settings }, null, 2),
-    );
+    const previewSettings =
+      name === 'web-preview-mobile'
+        ? JSON.parse(await readFile(path.join(root, 'config.json')))
+        : settings;
+    await archivePreview(root, name, previewSettings);
   }
 
   const prefixServer = createServer(root);

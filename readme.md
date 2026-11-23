@@ -7,7 +7,8 @@ Generowanie odbywa się w przeglądarce, bez konta i wysyłania obrazów.
 
 - Napisy na górze i dole koła, średnica w mm.
 - Zakres numerów albo wiele własnych tekstów z liczbą kopii.
-- Monety, wędki z wieńcem lub własne obrazy PNG/JPG/WEBP do 2 MB.
+- Monety, wędki z wieńcem, 10 wesołych ozdób wędkarskich lub własne obrazy
+  PNG/JPG/WEBP do 2 MB.
 - Kolory, rozmiary, rozstaw liter, przesunięcia i rozmieszczenie na A4.
 - Podgląd koła i arkusza, eksport PNG oraz PDF po akceptacji podglądu.
 - Zapis i wczytywanie projektu JSON wraz z własnymi obrazami.
@@ -21,6 +22,21 @@ PNG ma przezroczyste narożniki i metadane 600 DPI. PDF zachowuje dokładną śr
 ma jedną stronę 210 × 297 mm i preferencję drukowania 100%.
 Gdy układ lub tekst się nie mieści, program zgłasza błąd zamiast zmniejszać koła
 lub dodawać strony. Każda zmiana zeruje akceptację podglądu do PDF.
+
+Nowy projekt zaczyna od kolejnych numerów 1–30 o średnicy 37 mm.
+Po wybraniu „Własny tekst” dostępne są wzory PREZES i SKARBNIK KOŁA,
+po dwie kopie. Edytowane wzory pozostają zachowane przy przełączaniu trybów.
+Kliknięcie dowolnego pola lub ozdoby we wzorze przełącza podgląd na ten wzór.
+Nowe rysunki znajdziesz pod „Więcej ozdób wędkarskich”: król karpi, ryba
+w okularach, wesoły robak, kalosz, śpiący spławik, puchar, szczęśliwy haczyk,
+żaba na urlopie, kapitan kaczka i wiaderko nadziei.
+
+Przy błędzie dopasowania pojawia się przycisk „Popraw automatycznie”.
+Zmniejsza litery lub ozdobę, koryguje ich położenie albo dobiera kolumny
+i odstępy na A4. Korekta sprawdza wszystkie wzory, zachowując treść,
+liczbę kół i wybraną średnicę. Nie dodaje stron i wymaga ponownego sprawdzenia
+podglądu przed PDF. Gdy dopasowanie bez zmiany tych danych jest niemożliwe,
+pozostaje komunikat do ręcznej poprawy. Pustych pól program nie wypełnia sam.
 
 ## Uruchomienie
 
@@ -53,6 +69,8 @@ Kod własny jest sformatowany, a budowa kopiuje go bez minifikacji:
 - `web/app.js` — obsługa formularza i podglądu.
 - `web/model.js` — ustawienia, walidacja i układ kartki.
 - `web/renderer.js` — wspólne rysowanie koła do podglądu i eksportu.
+- `web/decorations.js` — galeria i rysunki ozdób wędkarskich.
+- `web/autofit.js` — korekta dopasowania po kliknięciu przycisku.
 - `web/storage.js` — zapis i odtwarzanie ustawień w przeglądarce.
 - `web/export.js` — pobieranie plików PNG i PDF.
 
@@ -127,6 +145,7 @@ Kolejne aktualizacje wysyłaj tymi samymi dwiema komendami.
 Testy przeglądarki zapisują lokalne podglądy w `output/web-preview.png`,
 `output/web-preview-a4.png` i `output/web-preview-mobile.png`.
 Podglądy i ustawienia są archiwizowane w `output/history/`.
+Dodatkowy podgląd wszystkich nowych ozdób to `output/web-ozdoby.png`.
 
 ```bash
 npm ci --ignore-scripts
