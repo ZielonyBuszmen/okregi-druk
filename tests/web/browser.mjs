@@ -7,6 +7,7 @@ import { createServer } from '../../tools/serve-web.mjs';
 import { checkEditorImprovements } from './editor-checks.mjs';
 import { archivePreview } from './preview-history.mjs';
 import { checkPagination } from './pagination-checks.mjs';
+import { checkSimpleControls } from './simple-controls.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const artifacts = process.env.OKREGI_TEST_ARTIFACTS || '/tmp/okregi-web-tests';
@@ -206,6 +207,7 @@ try {
   assert.equal(await page.locator('#preview-select option').count(), 4);
   assert.equal(await page.locator('#download-pdf').isDisabled(), false);
   await checkEditorImprovements(page, root, artifacts);
+  await checkSimpleControls(page, root);
   await checkPagination(page, root, { saveDownload, exportPdf });
   await resetRoles();
   await page.locator('#view-label').click();

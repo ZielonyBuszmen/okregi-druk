@@ -204,3 +204,22 @@ test('Edycja projektu i presetu nie zmienia ustawień początkowych', () => {
   assert.equal(config.rows[0].text, 'PREZES');
   assert.equal(project().rows[0].text, 'PREZES');
 });
+
+test('Starsze projekty otrzymują automatyczny średni rozstaw bez utraty danych', () => {
+  const old = project();
+  delete old.style.ringSpacing;
+  old.style.topSpan = 35;
+  old.style.bottomSpan = 132;
+  const migrated = parseProject(old);
+  assert.equal(migrated.style.ringSpacing, 'medium');
+  assert.equal('topSpan' in migrated.style, false);
+  assert.equal('bottomSpan' in migrated.style, false);
+  assert.equal(migrated.top, old.top);
+  assert.equal(migrated.diameterMm, old.diameterMm);
+  assert.deepEqual(migrated.rows, old.rows);
+  assert.equal(old.style.topSpan, 35);
+  assert.throws(
+    () => parseProject({ ...migrated, style: { ...migrated.style, ringSpacing: 'nieznany' } }),
+    /rozstaw/,
+  );
+});

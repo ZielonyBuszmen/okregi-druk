@@ -19,8 +19,6 @@ const STYLE_NUMBERS = [
   'innerRadiusMm',
   'innerWidthMm',
   'borderMm',
-  'topSpan',
-  'bottomSpan',
   'lineSpacingMm',
   'textOffsetY',
   'decorationMm',
@@ -35,6 +33,13 @@ export function parseDraftProject(data) {
   if (!project || project.version !== 1 || !project.style || !project.layout) {
     throw new Error('Nieprawidłowy zapis projektu.');
   }
+  // Starsze pliki i localStorage przechowywały ręczne kąty obu napisów.
+  // Nowy rozstaw wyliczamy z tekstu, zachowując pozostałe ustawienia projektu.
+  project.style.ringSpacing ??= 'medium';
+  delete project.style.topSpan;
+  delete project.style.bottomSpan;
+  if (!['small', 'medium', 'large'].includes(project.style.ringSpacing))
+    throw new Error('Wybierz mały, średni lub duży rozstaw napisów.');
   const isNumber = (value) => typeof value === 'number' && Number.isFinite(value);
   if (
     !['text', 'numbers'].includes(project.mode) ||
@@ -138,8 +143,8 @@ export function validateProject(project) {
   for (const key of ['textOffsetY', 'decorationOffsetY'])
     number(project.style[key], 'Przesunięcie (mm)', -60, 60);
   number(project.style.rodsScale, 'Rozmiar wędek', 0.2, 4);
-  for (const key of ['topSpan', 'bottomSpan'])
-    number(project.style[key], 'Długość łuku (°)', 1, 180);
+  if (!['small', 'medium', 'large'].includes(project.style.ringSpacing))
+    throw new Error('Wybierz mały, średni lub duży rozstaw napisów.');
   if (typeof project.style.symbols !== 'boolean')
     throw new Error('Nieprawidłowe ustawienie symboli bocznych.');
   if (

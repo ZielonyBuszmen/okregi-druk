@@ -1,5 +1,5 @@
 import { calculateLayout, FitError, fitColumns, PAGE } from './model.js';
-import { validateLabels, minimumArcSpan } from './renderer.js';
+import { validateLabels } from './renderer.js';
 
 function fittingLayout(project) {
   const margin = Math.min(
@@ -50,22 +50,9 @@ export function autoFitProject(project, images) {
           break;
         }
         case 'arc-text': {
-          // Najpierw zachowaj czytelne litery, wydłużając tylko za krótki łuk.
-          let expanded = false;
-          for (const [text, field] of [
-            [candidate.top, 'topSpan'],
-            [candidate.bottom, 'bottomSpan'],
-          ]) {
-            const required = Math.min(
-              180,
-              Math.ceil(minimumArcSpan(text, style.ringFontMm, style.textRadiusMm)),
-            );
-            if (required > style[field]) {
-              style[field] = required;
-              expanded = true;
-            }
-          }
-          if (!expanded) style.ringFontMm = smaller(style.ringFontMm);
+          // Odstępy są już dopasowane przez renderer. Gdy same litery
+          // przekraczają dostępny łuk, zmniejszamy ich rozmiar.
+          style.ringFontMm = smaller(style.ringFontMm);
           break;
         }
         case 'center-text':

@@ -35,9 +35,13 @@
   zachowując średnicę, treść oraz liczbę kół. Korektę sprawdzaj dla wszystkich
   wzorów wspólnym rendererem i zapisuj dopiero po pełnym powodzeniu.
   Przycisk umieszczaj w ramce błędu, bezpośrednio pod treścią komunikatu.
-- Zwinięta galeria pokazuje dwie ozdoby: wybraną (także własny obraz)
-  i jedną losową albo dwie różne losowe przy braku wyboru. Losowanie nie może
-  zmieniać nadruku ani przetasowywać kafelków przy odrysowaniu formularza.
+- Zwinięta galeria pokazuje trzy kafelki. Pierwszy to zawsze „Brak”, kolejne
+  to wybrana ozdoba (także własny obraz) i losowa albo dwie losowe przy braku
+  wyboru. Losowanie nie zmienia nadruku ani kafelków przy odrysowaniu formularza.
+- Rozstaw napisów licz automatycznie z tekstu, fontu i dostępnego miejsca;
+  użytkownik wybiera mały, średni lub duży. Starsze kąty migruj do średniego
+  rozstawu. Rozmiary liter, wielkość ozdoby i przesunięcia ustawiaj suwakami
+  z widocznymi wartościami. Ukrywaj ustawienia ozdoby, gdy nie jest używana.
 - Komendy:
   - zależności testów i pakowania: `npm ci --ignore-scripts`
   - budowa: `npm run build`

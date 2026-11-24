@@ -36,12 +36,25 @@ Nowy projekt zaczyna od kolejnych numerów 1–30 o średnicy 37 mm.
 Po wybraniu „Własny tekst” dostępne są wzory PREZES i SKARBNIK KOŁA,
 po dwie kopie. Edytowane wzory pozostają zachowane przy przełączaniu trybów.
 Kliknięcie dowolnego pola lub ozdoby we wzorze przełącza podgląd na ten wzór.
-W zwiniętej galerii są zawsze dwa kafelki: wybrana ozdoba i jedna losowa,
-a gdy nie wybrano ozdoby — dwie różne losowe propozycje. Wybrany własny obraz
-też pozostaje widoczny. Propozycje nie zmieniają ustawień nadruku i nie skaczą
-przy odrysowaniu formularza. Po powrocie wybrana ozdoba wraca z localStorage,
-a sąsiednia propozycja jest losowana ponownie. Reszta opcji, w tym „Brak”,
-znajduje się pod „Więcej ozdób”.
+W zwiniętej galerii są zawsze trzy kafelki. Pierwszy to „Brak”, dalej wybrana
+ozdoba i jedna losowa albo dwie losowe propozycje, gdy nic nie wybrano.
+Wybrany własny obraz też pozostaje widoczny. Propozycje nie zmieniają nadruku
+i nie skaczą przy odrysowaniu formularza. Po powrocie wybrana ozdoba wraca
+z localStorage, a sąsiednia propozycja jest losowana ponownie.
+Pozostałe opcje znajdują się pod „Więcej ozdób”.
+
+Rozmiar liter, wielkość ozdoby oraz położenie ozdoby i tekstu ustawisz
+suwakami z widocznymi wartościami w mm. Suwaki mają duże uchwyty i obsługę
+klawiszami strzałek. Wielkość i położenie ozdoby oraz jej kolor są widoczne
+tylko przy używanej ozdobie w trybie własnego tekstu.
+
+Rozstaw napisów ma trzy opcje: mały, średni i duży. Renderer oblicza odstępy
+z długości napisu, wielkości liter i dostępnego łuku, pozostawiając miejsce
+na boczne symbole. Krótkie napisy nie są niepotrzebnie rozciągane, a przy
+dłuższych odstępy zmniejszają się do dostępnego miejsca. Nie ma ręcznych
+kątów ani osobnego ustawienia wielkości wędek — wszystkie ozdoby korzystają
+ze wspólnego suwaka wielkości. Starsze zapisy i projekty JSON otrzymują
+średni automatyczny rozstaw, zachowując napisy, obrazy, średnicę i kopie.
 
 Nowe rysunki znajdziesz pod „Więcej ozdób”: król karpi, ryba
 w okularach, wesoły robak, kalosz, śpiący spławik, puchar, szczęśliwy haczyk,
@@ -49,8 +62,8 @@ w okularach, wesoły robak, kalosz, śpiący spławik, puchar, szczęśliwy hacz
 
 Przy błędzie dopasowania przycisk „Popraw automatycznie” pojawia się
 wewnątrz ramki komunikatu, bezpośrednio pod jego treścią.
-Najpierw wydłuża zbyt krótki łuk, zachowując czytelny rozmiar liter.
-Gdy to nie wystarcza, zmniejsza litery. Może też zmniejszyć ozdobę,
+Gdy same litery nie mieszczą się mimo dopasowania odstępów, zmniejsza ich
+rozmiar. Może też zmniejszyć ozdobę,
 skorygować jej położenie albo zmniejszyć margines, gdy nawet jedno koło
 nie mieści się na kartce. Korekta sprawdza wszystkie wzory, zachowując treść,
 liczbę kół i wybraną średnicę. Gdy dopasowanie bez zmiany tych danych jest niemożliwe,
