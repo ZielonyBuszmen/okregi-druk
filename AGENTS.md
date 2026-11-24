@@ -19,6 +19,9 @@
   Kliknięcie sprawdza aktualne ustawienia, także tuż po edycji. Nie eksportuj
   starej wersji projektu przy błędnych polach. Podczas generowania blokuj
   ponowne kliknięcie; przy błędzie pokaż komunikat i przywróć dostępność.
+  Podczas generowania pokazuj okno „Proszę czekać…” ze spinnerem i postępem;
+  zamykaj je po sukcesie i błędzie. Reset ma pytać o potwierdzenie, przywracać
+  `config.json` i zapisywać domyślną sesję bez czyszczenia innych danych przeglądarki.
 - Testy mogą tworzyć tymczasowe PDF-y poza `output/`; nie są to finalne arkusze.
 - Podglądy i ustawienia archiwizuj w `output/history/`.
 - Nie nadpisuj obrazków użytkownika w `input/` ani wcześniejszych eksportów.

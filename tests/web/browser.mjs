@@ -8,6 +8,7 @@ import { checkEditorImprovements } from './editor-checks.mjs';
 import { archivePreview } from './preview-history.mjs';
 import { checkPagination } from './pagination-checks.mjs';
 import { checkSimpleControls } from './simple-controls.mjs';
+import { checkDialogs } from './dialog-checks.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const artifacts = process.env.OKREGI_TEST_ARTIFACTS || '/tmp/okregi-web-tests';
@@ -209,6 +210,7 @@ try {
   await checkEditorImprovements(page, root, artifacts);
   await checkSimpleControls(page, root);
   await checkPagination(page, root, { saveDownload, exportPdf });
+  await checkDialogs(page, root, artifacts);
   await resetRoles();
   await page.locator('#view-label').click();
   await page.locator('#appearance-options').evaluate((section) => (section.open = false));

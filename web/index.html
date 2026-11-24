@@ -20,6 +20,7 @@
       <div class="project-actions">
         <button id="import-button" class="button secondary" type="button">Wczytaj z pliku</button>
         <button id="save-project" class="button secondary" type="button">Zapisz do pliku</button>
+        <button id="reset-project" class="button secondary" type="button" disabled>Reset</button>
         <input id="import-file" type="file" accept="application/json,.json" hidden />
       </div>
     </header>
@@ -379,6 +380,35 @@
         </section>
       </div>
     </main>
+    <dialog
+      id="reset-dialog"
+      class="app-dialog"
+      aria-labelledby="reset-title"
+      aria-describedby="reset-description"
+    >
+      <form method="dialog">
+        <h2 id="reset-title">Czy na pewno chcesz zresetować ustawienia?</h2>
+        <p id="reset-description">
+          Przywrócisz ustawienia początkowe aplikacji. Bieżący projekt zostanie zastąpiony.
+        </p>
+        <div class="dialog-actions">
+          <button id="reset-cancel" class="button secondary" value="cancel" autofocus>
+            Anuluj
+          </button>
+          <button id="reset-confirm" class="button primary" value="reset">Tak, zresetuj</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog
+      id="pdf-progress"
+      class="app-dialog pdf-progress"
+      aria-labelledby="pdf-progress-title"
+      aria-describedby="pdf-progress-status"
+    >
+      <div class="progress-spinner" aria-hidden="true"></div>
+      <h2 id="pdf-progress-title">Proszę czekać…</h2>
+      <p id="pdf-progress-status" role="status">Przygotowuję PDF…</p>
+    </dialog>
     <footer>
       Projekt wróci po ponownym otwarciu tej strony w tej samej przeglądarce. Kopię na inny komputer
       zapiszesz przyciskiem „Zapisz do pliku”.

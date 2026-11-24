@@ -12,6 +12,7 @@ Generowanie odbywa się w przeglądarce, bez konta i wysyłania obrazów.
 - Kolory, rozmiary, rozstaw liter, przesunięcia i rozmieszczenie na A4.
 - Podgląd koła i arkusza, eksport PNG oraz PDF bez dodatkowego zatwierdzania.
 - Zapis i wczytywanie projektu JSON wraz z własnymi obrazami.
+- Reset ustawień z potwierdzeniem oraz okno postępu podczas tworzenia PDF.
 
 Interfejs używa dużych liter (18 px), wyraźnych obramowań i zwykłych przycisków.
 Na telefonie jest jeden układ kolumnowy i stałe przejście pomiędzy ustawieniami
@@ -31,6 +32,15 @@ Przycisk PDF jest dostępny bez checkboxa i zatwierdzania podglądu.
 Po kliknięciu sprawdza najnowsze ustawienia, także od razu po ich wpisaniu.
 Przy błędnym projekcie pokazuje komunikat zamiast eksportować poprzednią wersję.
 Podczas przygotowywania pliku jest chwilowo wyłączony, aby nie powielać eksportu.
+Na czas generowania pojawia się okno „Proszę czekać…” z obracającym się
+kółkiem i liczbą przygotowanych etykiet. Zamyka się po przygotowaniu pliku
+oraz przy błędzie, przywracając dostęp do formularza.
+
+Przycisk „Reset” na górnym pasku pyta o potwierdzenie. „Tak, zresetuj”
+przywraca ustawienia z `config.json`, usuwa własne obrazy z bieżącego projektu,
+czyści niekompletne pola i wybór strony oraz zastępuje zapis tej aplikacji
+w localStorage. „Anuluj” i Escape niczego nie zmieniają. Inne dane w pamięci
+przeglądarki oraz wcześniej pobrane pliki pozostają zachowane.
 
 Nowy projekt zaczyna od kolejnych numerów 1–30 o średnicy 37 mm.
 Po wybraniu „Własny tekst” dostępne są wzory PREZES i SKARBNIK KOŁA,

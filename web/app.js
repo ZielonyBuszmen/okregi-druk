@@ -307,6 +307,7 @@ function renderRows() {
         candidate.rows[index].image = data;
         candidate.rows[index].decoration = 'custom';
         await loadImages(candidate);
+        if (project.rows[index] !== row) return;
         row.image = data;
         row.imageName = file.name;
         row.decoration = 'custom';
@@ -649,9 +650,26 @@ getElement('#save-project').addEventListener('click', () => {
   );
   notice('Zapisano projekt do pliku. Możesz go później wczytać razem z własnymi ozdobami.');
 });
+getElement('#reset-project').addEventListener('click', () => {
+  if (!project || exportInProgress) return;
+  const dialog = getElement('#reset-dialog');
+  dialog.returnValue = 'cancel';
+  dialog.showModal();
+});
+getElement('#reset-dialog').addEventListener('close', () => {
+  if (getElement('#reset-dialog').returnValue !== 'reset') return;
+  project = parseProject(defaultConfig);
+  view = 'label';
+  for (const section of editor.querySelectorAll('details[open]')) section.open = false;
+  resetEditor();
+  notice('Przywrócono ustawienia początkowe.');
+});
+// Okno czekania zamyka się po zakończeniu eksportu, również po błędzie.
+getElement('#pdf-progress').addEventListener('cancel', (event) => event.preventDefault());
 getElement('#import-button').addEventListener('click', () => getElement('#import-file').click());
 getElement('#import-file').addEventListener('change', async (event) => {
   const file = event.target.files[0];
+  const previousProject = project;
   event.target.value = '';
   if (!file) return;
   try {
@@ -660,6 +678,7 @@ getElement('#import-file').addEventListener('change', async (event) => {
     const layout = calculateLayout(candidate),
       images = await loadImages(candidate);
     validateLabels(candidate, layout.labels, images);
+    if (project !== previousProject) return;
     project = candidate;
     resetEditor();
     notice('Projekt został wczytany.');
@@ -695,8 +714,13 @@ getElement('#download-pdf').addEventListener('click', async () => {
   exportInProgress = true;
   editor.inert = true;
   updateDownloadButtons();
-  for (const selector of ['#save-project', '#import-button']) getElement(selector).disabled = true;
+  for (const selector of ['#save-project', '#import-button', '#reset-project'])
+    getElement(selector).disabled = true;
   try {
+    getElement('#pdf-progress-status').textContent = 'Przygotowuję PDF…';
+    getElement('#pdf-progress').showModal();
+    // Oddaj przeglądarce czas na narysowanie okna przed pracą renderera.
+    await new Promise((resolve) => setTimeout(resolve, 30));
     // Kliknięcie działa także tuż po wpisaniu wartości, bez czekania na podgląd.
     clearTimeout(previewTimer);
     if (!currentPreview || projectKey(project) !== currentPreview.key) await updatePreview();
@@ -707,6 +731,7 @@ getElement('#download-pdf').addEventListener('click', async () => {
     }
     const blob = await makePdf(preview.project, preview.layout, preview.images, (done, total) => {
       getElement('#export-status').textContent = `Przygotowuję PDF: ${done} z ${total} kół…`;
+      getElement('#pdf-progress-status').textContent = `Przygotowuję PDF: ${done} z ${total} kół…`;
     });
     download(blob, `okregi-${preview.project.diameterMm}mm-A4.pdf`);
     getElement('#export-status').textContent =
@@ -717,9 +742,10 @@ getElement('#download-pdf').addEventListener('click', async () => {
   } finally {
     exportInProgress = false;
     editor.inert = false;
-    for (const selector of ['#save-project', '#import-button'])
+    for (const selector of ['#save-project', '#import-button', '#reset-project'])
       getElement(selector).disabled = false;
     updateDownloadButtons();
+    if (getElement('#pdf-progress').open) getElement('#pdf-progress').close();
   }
 });
 
@@ -745,6 +771,7 @@ async function init() {
         : 'Ustawienia zapisują się automatycznie w tej przeglądarce.';
     getElement('#storage-status').classList.toggle('error', !browserStorage);
     await updatePreview();
+    getElement('#reset-project').disabled = false;
   } catch (error) {
     getElement('#loading').hidden = true;
     getElement('#preview-error').hidden = false;
