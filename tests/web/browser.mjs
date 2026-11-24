@@ -256,6 +256,14 @@ try {
   );
   await phone.locator('#top-text').fill('BARDZO DŁUGI NAPIS DLA KOŁA WĘDKARSKIEGO');
   await phone.waitForFunction(() => !document.querySelector('#auto-fix').hidden);
+  assert.equal(await phone.locator('#preview-error #auto-fix').count(), 1);
+  await phone
+    .locator('#preview-error')
+    .screenshot({ path: path.join(root, 'output/web-error-mobile.png') });
+  const errorSettings = await phone.evaluate(
+    () => JSON.parse(localStorage.getItem(`okregi-project-v1:${location.pathname}`)).project,
+  );
+  await archivePreview(root, 'web-error-mobile', errorSettings);
   await phone.locator('#auto-fix').click();
   await phone.waitForFunction(() => !document.querySelector('#download-png').disabled);
   assert.equal(await phone.locator('#diameter').inputValue(), '37');

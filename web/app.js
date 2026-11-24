@@ -27,6 +27,7 @@ let project,
   exportInProgress = false;
 const invalidFields = new Set();
 const invalidInputValues = new Map();
+const decorationSuggestions = new WeakMap();
 
 function getBrowserStorage() {
   try {
@@ -133,6 +134,68 @@ function thumbnail(canvas, decoration) {
   } else drawDecoration(ctx, decoration, project.style);
 }
 
+function suggestedDecorations(row) {
+  const selected = row.decoration === 'none' ? null : row.decoration;
+  const previous = decorationSuggestions.get(row);
+  if (previous?.selected === selected) return previous.choices;
+  const available = DECORATION_CHOICES.filter(({ id }) => id !== 'none' && id !== selected).map(
+    ({ id }) => id,
+  );
+  const choices = selected ? [selected] : [];
+  while (choices.length < 2) {
+    const index = Math.floor(Math.random() * available.length);
+    choices.push(available.splice(index, 1)[0]);
+  }
+  // Odrysowanie formularza nie zmienia propozycji. Losujemy je po wczytaniu
+  // projektu albo zmianie wybranej ozdoby, bez modyfikowania ustawień nadruku.
+  decorationSuggestions.set(row, { selected, choices });
+  return choices;
+}
+
+function renderDecorationChoices(card, row) {
+  const quickChoices = suggestedDecorations(row);
+  const allChoices =
+    row.image || row.decoration === 'custom'
+      ? [...DECORATION_CHOICES, { id: 'custom', title: 'Własny obraz' }]
+      : DECORATION_CHOICES;
+  const quickGroup = card.querySelector('.quick-decorations');
+  const extraGroup = card.querySelector('.extra-decorations');
+  quickGroup.replaceChildren();
+  extraGroup.replaceChildren();
+  const ordered = [
+    ...quickChoices.map((id) => allChoices.find((choice) => choice.id === id)),
+    ...allChoices.filter(({ id }) => !quickChoices.includes(id)),
+  ];
+  ordered.forEach(({ id, title }, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'decoration-choice';
+    button.dataset.decoration = id;
+    button.setAttribute('aria-pressed', String(row.decoration === id));
+    button.classList.toggle('active', row.decoration === id);
+    const picture = document.createElement(id === 'custom' && row.image ? 'img' : 'canvas');
+    picture.setAttribute('aria-hidden', 'true');
+    if (id === 'custom' && row.image) {
+      picture.src = row.image;
+      picture.alt = '';
+    } else thumbnail(picture, id === 'custom' ? 'none' : id);
+    button.append(picture, document.createTextNode(title));
+    button.addEventListener('click', () => {
+      row.decoration = id;
+      renderDecorationChoices(card, row);
+      invalidate();
+      card.querySelector(`[data-decoration="${id}"]`).focus({ preventScroll: true });
+    });
+    (index < 2 ? quickGroup : extraGroup).append(button);
+  });
+  card.querySelector('.more-decorations > summary').textContent =
+    `Więcej ozdób (${allChoices.length - 2})`;
+  const status = card.querySelector('.custom-status');
+  status.hidden = row.decoration !== 'custom';
+  status.textContent =
+    row.decoration === 'custom' ? `Wybrany obraz: ${row.imageName || 'własna ozdoba'}` : '';
+}
+
 function renderRows() {
   const openGalleries = new Set(
     [...getElement('#text-rows').querySelectorAll('details[open]')].map((item) => item.id),
@@ -157,10 +220,10 @@ function renderRows() {
         </div>
         <div class="row-ornaments">
           <p class="field-label">Wybierz ozdobę</p>
-          <div class="decoration-options" role="group" aria-label="Wybierz ozdobę"></div>
+          <div class="decoration-options quick-decorations" role="group" aria-label="Wybierz ozdobę"></div>
           <details class="more-decorations">
-            <summary>Więcej ozdób wędkarskich (10)</summary>
-            <div class="decoration-options extra-decorations" role="group" aria-label="Wesołe ozdoby wędkarskie"></div>
+            <summary>Więcej ozdób</summary>
+            <div class="decoration-options extra-decorations" role="group" aria-label="Pozostałe ozdoby"></div>
           </details>
           <button type="button" class="upload-control">Wybierz własny obraz</button>
           <input type="file" accept="image/png,image/jpeg,image/webp" hidden>
@@ -184,34 +247,8 @@ function renderRows() {
     remove.addEventListener('click', () => removeRow(index));
     const gallery = card.querySelector('.more-decorations');
     gallery.id = `ornaments-row-${index}`;
-    gallery.open =
-      openGalleries.has(gallery.id) ||
-      DECORATION_CHOICES.slice(3).some(({ id }) => id === row.decoration);
-    for (const [choiceIndex, { id: kind, title }] of DECORATION_CHOICES.entries()) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'decoration-choice';
-      button.dataset.decoration = kind;
-      button.setAttribute('aria-pressed', String(row.decoration === kind));
-      button.classList.toggle('active', row.decoration === kind);
-      const canvas = document.createElement('canvas');
-      canvas.setAttribute('aria-hidden', 'true');
-      thumbnail(canvas, kind);
-      button.append(canvas, document.createTextNode(title));
-      button.addEventListener('click', () => {
-        row.decoration = kind;
-        for (const choice of card.querySelectorAll('.decoration-choice')) {
-          const selected = choice.dataset.decoration === kind;
-          choice.classList.toggle('active', selected);
-          choice.setAttribute('aria-pressed', String(selected));
-        }
-        card.querySelector('.custom-status').hidden = true;
-        invalidate();
-      });
-      card
-        .querySelector(choiceIndex < 3 ? '.decoration-options' : '.extra-decorations')
-        .append(button);
-    }
+    gallery.open = openGalleries.has(gallery.id);
+    renderDecorationChoices(card, row);
     const upload = card.querySelector('input[type=file]');
     card.querySelector('.upload-control').addEventListener('click', () => upload.click());
     upload.setAttribute('aria-label', `Własna ozdoba dla wzoru ${index + 1}`);
@@ -244,11 +281,6 @@ function renderRows() {
         notice(error.message, true);
       }
     });
-    if (row.decoration === 'custom') {
-      const status = card.querySelector('.custom-status');
-      status.hidden = false;
-      status.textContent = `Wybrany obraz: ${row.imageName || 'własna ozdoba'}`;
-    }
     getElement('#text-rows').append(card);
   });
 }
@@ -399,7 +431,7 @@ async function updatePreview() {
     if (id !== generation) return;
     currentPreview = null;
     getElement('#preview-error').hidden = false;
-    getElement('#preview-error').textContent = error.message;
+    getElement('#preview-error-text').textContent = error.message;
     getElement('#auto-fix').hidden = !canAutoFit(error, project);
     getElement('#preview-stage').classList.add('invalid');
     getElement('#page-navigation').hidden = true;
@@ -471,7 +503,10 @@ editor.addEventListener('input', (event) => {
   invalidFields.delete(field);
   invalidInputValues.delete(field);
   if (field === 'diameterMm') {
-    project = resizeDiameter(project, value);
+    const resized = resizeDiameter(project, value);
+    // Średnica nie zmienia wzorów. Zachowaj ich wybory i obsługę kafelków.
+    resized.rows = project.rows;
+    project = resized;
     for (const other of editor.querySelectorAll('[data-field^="style."]')) {
       const v = byPath(project, other.dataset.field);
       if (typeof v === 'number') other.value = Number(v.toFixed(3));
@@ -527,7 +562,9 @@ getElement('#auto-fix').addEventListener('click', async () => {
     const snapshot = structuredClone(project);
     const images = await loadImages(snapshot);
     if (revision !== generation) return;
-    project = autoFitProject(snapshot, images);
+    const fitted = autoFitProject(snapshot, images);
+    fitted.rows = project.rows;
+    project = fitted;
     syncFields();
     renderRows();
     invalidate();
@@ -634,7 +671,7 @@ getElement('#download-pdf').addEventListener('click', async () => {
     if (!currentPreview || projectKey(project) !== currentPreview.key) await updatePreview();
     const preview = currentPreview;
     if (!preview || projectKey(project) !== preview.key) {
-      notice(`Nie można przygotować PDF. ${getElement('#preview-error').textContent}`, true);
+      notice(`Nie można przygotować PDF. ${getElement('#preview-error-text').textContent}`, true);
       return;
     }
     const blob = await makePdf(preview.project, preview.layout, preview.images, (done, total) => {
@@ -680,7 +717,7 @@ async function init() {
   } catch (error) {
     getElement('#loading').hidden = true;
     getElement('#preview-error').hidden = false;
-    getElement('#preview-error').textContent = error.message;
+    getElement('#preview-error-text').textContent = error.message;
     notice('Aplikacja nie mogła się uruchomić. Sprawdź połączenie lub odśwież stronę.', true);
   }
 }

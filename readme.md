@@ -36,11 +36,19 @@ Nowy projekt zaczyna od kolejnych numerów 1–30 o średnicy 37 mm.
 Po wybraniu „Własny tekst” dostępne są wzory PREZES i SKARBNIK KOŁA,
 po dwie kopie. Edytowane wzory pozostają zachowane przy przełączaniu trybów.
 Kliknięcie dowolnego pola lub ozdoby we wzorze przełącza podgląd na ten wzór.
-Nowe rysunki znajdziesz pod „Więcej ozdób wędkarskich”: król karpi, ryba
+W zwiniętej galerii są zawsze dwa kafelki: wybrana ozdoba i jedna losowa,
+a gdy nie wybrano ozdoby — dwie różne losowe propozycje. Wybrany własny obraz
+też pozostaje widoczny. Propozycje nie zmieniają ustawień nadruku i nie skaczą
+przy odrysowaniu formularza. Po powrocie wybrana ozdoba wraca z localStorage,
+a sąsiednia propozycja jest losowana ponownie. Reszta opcji, w tym „Brak”,
+znajduje się pod „Więcej ozdób”.
+
+Nowe rysunki znajdziesz pod „Więcej ozdób”: król karpi, ryba
 w okularach, wesoły robak, kalosz, śpiący spławik, puchar, szczęśliwy haczyk,
 żaba na urlopie, kapitan kaczka i wiaderko nadziei.
 
-Przy błędzie dopasowania pojawia się przycisk „Popraw automatycznie”.
+Przy błędzie dopasowania przycisk „Popraw automatycznie” pojawia się
+wewnątrz ramki komunikatu, bezpośrednio pod jego treścią.
 Najpierw wydłuża zbyt krótki łuk, zachowując czytelny rozmiar liter.
 Gdy to nie wystarcza, zmniejsza litery. Może też zmniejszyć ozdobę,
 skorygować jej położenie albo zmniejszyć margines, gdy nawet jedno koło

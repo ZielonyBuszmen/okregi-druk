@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { archivePreview } from './preview-history.mjs';
+import { DECORATION_CHOICES } from '../../web/decorations.js';
 
 export async function checkEditorImprovements(page, root, artifacts) {
   const valid = () => page.waitForFunction(() => !document.querySelector('#download-png').disabled);
@@ -20,6 +21,38 @@ export async function checkEditorImprovements(page, root, artifacts) {
   await valid();
   assert.equal(await page.locator('.text-row textarea').nth(0).inputValue(), 'PREZES');
   assert.equal(await page.locator('.text-row textarea').nth(1).inputValue(), 'SKARBNIK\nKOŁA');
+  const quickKinds = (row) =>
+    row
+      .locator('.quick-decorations button')
+      .evaluateAll((buttons) => buttons.map((button) => button.dataset.decoration));
+  const firstRow = page.locator('.text-row').first();
+  const initialSuggestions = await quickKinds(firstRow);
+  assert.equal(initialSuggestions.length, 2);
+  assert.equal(initialSuggestions[0], 'fishing');
+  assert.equal(new Set(initialSuggestions).size, 2);
+  assert(!initialSuggestions.includes('none'));
+  // Zmiana koloru odrysowuje kafelki, ale nie losuje ich ponownie.
+  await page.locator('#ink-color').evaluate((input) => {
+    input.value = '#100864';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await valid();
+  assert.deepEqual(await quickKinds(firstRow), initialSuggestions);
+  await page.locator('#ink-color').evaluate((input) => {
+    input.value = '#100863';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await valid();
+  await page.locator('#diameter').fill('40');
+  await valid();
+  assert.deepEqual(await quickKinds(firstRow), initialSuggestions);
+  const suggestedKind = (await quickKinds(firstRow))[1];
+  await firstRow.locator('.quick-decorations button').nth(1).click();
+  await valid();
+  assert.equal((await savedProject()).rows[0].decoration, suggestedKind);
+  await firstRow.locator('.more-decorations > summary').click();
+  await firstRow.locator('[data-decoration=fishing]').click();
+  await valid();
   await page.locator('.text-row textarea').nth(1).click();
   assert.equal(await page.locator('#preview-select').inputValue(), '2');
   assert.match(await page.locator('#preview-canvas').getAttribute('aria-label'), /SKARBNIK KOŁA/);
@@ -33,15 +66,15 @@ export async function checkEditorImprovements(page, root, artifacts) {
   const gallery = page.locator('.text-row').nth(1);
   await gallery.locator('.more-decorations > summary').click();
   assert.equal(await gallery.locator('.decoration-choice').count(), 13);
-  const kinds = await gallery
-    .locator('.extra-decorations button')
-    .evaluateAll((buttons) => buttons.map((button) => button.dataset.decoration));
+  const kinds = DECORATION_CHOICES.slice(3).map(({ id }) => id);
   assert.equal(kinds.length, 10);
   const images = new Set();
   for (const kind of kinds) {
     await gallery.locator(`[data-decoration="${kind}"]`).click();
     await valid();
     assert.equal(await page.locator('#preview-select').inputValue(), '3');
+    assert.equal((await quickKinds(gallery))[0], kind);
+    assert.equal((await quickKinds(gallery)).length, 2);
     assert.equal(
       await gallery.locator(`[data-decoration="${kind}"]`).getAttribute('aria-pressed'),
       'true',
@@ -57,6 +90,12 @@ export async function checkEditorImprovements(page, root, artifacts) {
     await page.locator('.text-row').nth(1).locator('.more-decorations').getAttribute('open'),
     '',
   );
+  await gallery.locator('.more-decorations > summary').click();
+  await page.reload();
+  await valid();
+  assert.equal(await gallery.locator('.more-decorations').getAttribute('open'), null);
+  assert.equal((await quickKinds(gallery))[0], 'hope-bucket');
+  assert.equal(new Set(await quickKinds(gallery)).size, 2);
   await page
     .locator('.text-row')
     .nth(1)
@@ -67,9 +106,23 @@ export async function checkEditorImprovements(page, root, artifacts) {
   );
   await valid();
   assert.equal(await page.locator('#preview-select').inputValue(), '3');
+  assert.equal((await quickKinds(gallery))[0], 'custom');
+  assert.match(
+    await gallery.locator('.quick-decorations img').getAttribute('src'),
+    /^data:image\/png/,
+  );
+  await page.reload();
+  await valid();
+  assert.equal((await quickKinds(gallery))[0], 'custom');
+  assert.equal(await gallery.locator('.more-decorations').getAttribute('open'), null);
   await page.locator('#add-row').click();
   await valid();
   assert.equal(await page.locator('#preview-select').inputValue(), '5');
+  const emptySuggestions = await quickKinds(page.locator('.text-row').last());
+  assert.equal(emptySuggestions.length, 2);
+  assert.equal(new Set(emptySuggestions).size, 2);
+  assert(!emptySuggestions.includes('none'));
+  assert.equal((await savedProject()).rows.at(-1).decoration, 'none');
   await page.locator('.remove-row').last().click();
   await valid();
   await page.locator('.remove-row').first().click();
@@ -87,6 +140,22 @@ export async function checkEditorImprovements(page, root, artifacts) {
     await page.locator('#preview-error').textContent(),
     /KOMOROWO.*nie mieści się na łuku/,
   );
+  const errorGeometry = await page.locator('#auto-fix').evaluate((button) => {
+    const frame = document.querySelector('#preview-error');
+    const parent = frame.getBoundingClientRect();
+    const text = document.querySelector('#preview-error-text').getBoundingClientRect();
+    const bounds = button.getBoundingClientRect();
+    return {
+      inside:
+        frame.contains(button) &&
+        bounds.left >= parent.left &&
+        bounds.right <= parent.right &&
+        bounds.bottom <= parent.bottom,
+      gap: bounds.top - text.bottom,
+    };
+  });
+  assert.equal(errorGeometry.inside, true);
+  assert(errorGeometry.gap >= 0 && errorGeometry.gap <= 20);
   await page.screenshot({
     path: path.join(root, 'output/web-auto-fix-preview.png'),
     fullPage: true,

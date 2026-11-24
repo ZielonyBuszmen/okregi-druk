@@ -34,6 +34,10 @@
 - Przycisk „Popraw automatycznie” może dopasować tekst, ozdoby i układ,
   zachowując średnicę, treść oraz liczbę kół. Korektę sprawdzaj dla wszystkich
   wzorów wspólnym rendererem i zapisuj dopiero po pełnym powodzeniu.
+  Przycisk umieszczaj w ramce błędu, bezpośrednio pod treścią komunikatu.
+- Zwinięta galeria pokazuje dwie ozdoby: wybraną (także własny obraz)
+  i jedną losową albo dwie różne losowe przy braku wyboru. Losowanie nie może
+  zmieniać nadruku ani przetasowywać kafelków przy odrysowaniu formularza.
 - Komendy:
   - zależności testów i pakowania: `npm ci --ignore-scripts`
   - budowa: `npm run build`
