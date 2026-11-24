@@ -120,54 +120,113 @@
 
           <details id="appearance-options" class="panel">
             <summary>Rozmiar liter, kolory i ozdoby</summary>
+            <p class="help">
+              Ustawienia są wspólne dla wszystkich kół. Przesuwaj suwaki lub używaj klawiszy
+              strzałek.
+            </p>
             <div class="field-row">
               <div>
-                <label for="center-size">Litery w środku (mm)</label>
+                <label for="center-size" class="slider-label"
+                  >Litery w środku <output id="center-size-value" for="center-size"></output
+                ></label>
                 <input
                   id="center-size"
-                  type="number"
+                  type="range"
                   min="0.1"
-                  max="60"
-                  step="0.001"
+                  max="120"
+                  step="0.1"
                   data-field="style.fontMm"
                 />
+                <div class="slider-hints" aria-hidden="true">
+                  <span>Mniejsze</span><span>Większe</span>
+                </div>
               </div>
               <div>
-                <label for="ring-size">Litery wokół (mm)</label>
+                <label for="ring-size" class="slider-label"
+                  >Litery wokół <output id="ring-size-value" for="ring-size"></output
+                ></label>
                 <input
                   id="ring-size"
-                  type="number"
+                  type="range"
                   min="0.1"
-                  max="12"
-                  step="0.001"
+                  max="120"
+                  step="0.01"
                   data-field="style.ringFontMm"
                 />
+                <div class="slider-hints" aria-hidden="true">
+                  <span>Mniejsze</span><span>Większe</span>
+                </div>
               </div>
             </div>
-            <div class="field-row">
-              <div>
-                <label for="top-span">Rozstaw na górze (°)</label>
-                <input id="top-span" type="number" min="1" max="180" data-field="style.topSpan" />
+            <div class="spacing-field">
+              <label for="ring-spacing">Rozstaw napisów wokół koła</label>
+              <select id="ring-spacing" data-field="style.ringSpacing">
+                <option value="small">Mały</option>
+                <option value="medium">Średni</option>
+                <option value="large">Duży</option>
+              </select>
+              <p class="help">
+                Odstępy dopasują się automatycznie do długości napisu i wielkości liter.
+              </p>
+            </div>
+            <div class="slider-field">
+              <label for="text-y" class="slider-label"
+                >Położenie tekstu w środku <output id="text-y-value" for="text-y"></output
+              ></label>
+              <input
+                id="text-y"
+                type="range"
+                min="-60"
+                max="60"
+                step="0.1"
+                data-field="style.textOffsetY"
+              />
+              <div class="slider-hints" aria-hidden="true">
+                <span>Wyżej</span><span>Niżej</span>
               </div>
+            </div>
+            <div id="ornament-controls" class="field-row" hidden>
               <div>
-                <label for="bottom-span">Rozstaw na dole (°)</label>
+                <label for="decoration-size" class="slider-label"
+                  >Wielkość ozdoby <output id="decoration-size-value" for="decoration-size"></output
+                ></label>
                 <input
-                  id="bottom-span"
-                  type="number"
-                  min="1"
-                  max="180"
-                  data-field="style.bottomSpan"
+                  id="decoration-size"
+                  type="range"
+                  min="0.1"
+                  max="120"
+                  step="0.1"
+                  data-field="style.decorationMm"
                 />
+                <div class="slider-hints" aria-hidden="true">
+                  <span>Mniejsza</span><span>Większa</span>
+                </div>
+              </div>
+              <div>
+                <label for="decoration-y" class="slider-label"
+                  >Położenie ozdoby <output id="decoration-y-value" for="decoration-y"></output
+                ></label>
+                <input
+                  id="decoration-y"
+                  type="range"
+                  min="-60"
+                  max="60"
+                  step="0.1"
+                  data-field="style.decorationOffsetY"
+                />
+                <div class="slider-hints" aria-hidden="true">
+                  <span>Wyżej</span><span>Niżej</span>
+                </div>
               </div>
             </div>
             <div class="field-row">
               <div>
-                <label for="ink-color">Kolor napisów i obwódki</label
-                ><input id="ink-color" type="color" data-field="style.color" />
+                <label for="ink-color">Kolor napisów i obwódki</label>
+                <input id="ink-color" type="color" data-field="style.color" />
               </div>
-              <div>
-                <label for="accent-color">Kolor ozdób</label
-                ><input id="accent-color" type="color" data-field="style.accent" />
+              <div id="accent-color-field" hidden>
+                <label for="accent-color">Kolor ozdób</label>
+                <input id="accent-color" type="color" data-field="style.accent" />
               </div>
             </div>
             <label class="check-label"
@@ -176,67 +235,18 @@
             >
 
             <details id="decoration-options" class="advanced">
-              <summary>Dokładne położenie ozdób i tekstu</summary>
-              <div class="field-row">
-                <div>
-                  <label for="decoration-size">Rozmiar ozdoby (mm)</label
-                  ><input
-                    id="decoration-size"
-                    type="number"
-                    min="1"
-                    max="60"
-                    step="0.5"
-                    data-field="style.decorationMm"
-                  />
-                </div>
-                <div>
-                  <label for="decoration-y">Przesunięcie ozdoby (mm)</label
-                  ><input
-                    id="decoration-y"
-                    type="number"
-                    min="-60"
-                    max="60"
-                    step="0.5"
-                    data-field="style.decorationOffsetY"
-                  />
-                </div>
-              </div>
-              <div class="field-row">
-                <div>
-                  <label for="text-y">Przesunięcie tekstu (mm)</label
-                  ><input
-                    id="text-y"
-                    type="number"
-                    min="-60"
-                    max="60"
-                    step="0.5"
-                    data-field="style.textOffsetY"
-                  />
-                </div>
-                <div>
-                  <label for="line-spacing">Odstęp między wierszami (mm)</label
-                  ><input
-                    id="line-spacing"
-                    type="number"
-                    min="0"
-                    max="20"
-                    step="0.1"
-                    data-field="style.lineSpacingMm"
-                  />
-                </div>
-              </div>
-              <label for="rod-size"
-                >Wielkość wędek: <output id="rod-size-value" for="rod-size">1,8 razy</output></label
-              >
+              <summary>Odstęp między wierszami</summary>
+              <label for="line-spacing" class="slider-label"
+                >Odstęp <output id="line-spacing-value" for="line-spacing"></output
+              ></label>
               <input
-                id="rod-size"
+                id="line-spacing"
                 type="range"
-                min="0.5"
-                max="3"
+                min="0"
+                max="20"
                 step="0.1"
-                data-field="style.rodsScale"
+                data-field="style.lineSpacingMm"
               />
-              <p class="help">Przesunięcie ujemne przenosi element wyżej, a dodatnie — niżej.</p>
             </details>
           </details>
 

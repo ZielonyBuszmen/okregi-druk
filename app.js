@@ -67,7 +67,7 @@ function restoreUiState(ui) {
     const input = rowMatch
       ? editor.querySelector(`[data-row-index="${Number(rowMatch[1])}"][data-row-field="copies"]`)
       : editor.querySelector(`[data-field="${CSS.escape(name)}"]`);
-    if (input) {
+    if (input && input.type !== 'range') {
       input.value = value;
       invalidFields.add(name);
       invalidInputValues.set(name, value);
@@ -115,8 +115,43 @@ function syncFields() {
   editor.querySelector(`[name=mode][value=${project.mode}]`).checked = true;
   getElement('#number-fields').hidden = project.mode !== 'numbers';
   getElement('#text-fields').hidden = project.mode !== 'text';
-  getElement('#rod-size-value').textContent =
-    `${project.style.rodsScale.toLocaleString('pl-PL')} razy`;
+  syncSliders(true);
+  updateOrnamentControls();
+}
+
+function syncSliders(configure = false) {
+  const diameter = project.diameterMm;
+  const limits = {
+    'style.fontMm': [0.1, diameter * 0.8],
+    'style.ringFontMm': [
+      0.1,
+      Math.max(0.1, (diameter / 2 - project.style.borderMm - project.style.textRadiusMm) * 2 - 0.1),
+    ],
+    'style.decorationMm': [0.1, diameter * 0.75],
+    'style.decorationOffsetY': [-project.style.innerRadiusMm, project.style.innerRadiusMm],
+    'style.textOffsetY': [-project.style.innerRadiusMm, project.style.innerRadiusMm],
+    'style.lineSpacingMm': [0, Math.min(20, diameter / 3)],
+  };
+  for (const input of editor.querySelectorAll('input[type=range][data-field]')) {
+    const value = byPath(project, input.dataset.field);
+    if (configure) {
+      const [min, max] = limits[input.dataset.field];
+      const step = Number(input.step);
+      // Importowane ustawienia pozostają widoczne, także gdy wymagają korekty.
+      input.min = Number((Math.floor(Math.min(min, value) / step) * step).toFixed(3));
+      input.max = Number((Math.ceil(Math.max(max, value) / step) * step).toFixed(3));
+      input.value = value;
+    }
+    const label = `${value.toLocaleString('pl-PL', { maximumFractionDigits: 2 })} mm`;
+    getElement(`#${input.id}-value`).textContent = label;
+    input.setAttribute('aria-valuetext', label);
+  }
+}
+
+function updateOrnamentControls() {
+  const visible = project.mode === 'text' && project.rows.some((row) => row.decoration !== 'none');
+  getElement('#ornament-controls').hidden = !visible;
+  getElement('#accent-color-field').hidden = !visible;
 }
 
 function thumbnail(canvas, decoration) {
@@ -141,8 +176,8 @@ function suggestedDecorations(row) {
   const available = DECORATION_CHOICES.filter(({ id }) => id !== 'none' && id !== selected).map(
     ({ id }) => id,
   );
-  const choices = selected ? [selected] : [];
-  while (choices.length < 2) {
+  const choices = selected ? ['none', selected] : ['none'];
+  while (choices.length < 3) {
     const index = Math.floor(Math.random() * available.length);
     choices.push(available.splice(index, 1)[0]);
   }
@@ -186,14 +221,15 @@ function renderDecorationChoices(card, row) {
       invalidate();
       card.querySelector(`[data-decoration="${id}"]`).focus({ preventScroll: true });
     });
-    (index < 2 ? quickGroup : extraGroup).append(button);
+    (index < 3 ? quickGroup : extraGroup).append(button);
   });
   card.querySelector('.more-decorations > summary').textContent =
-    `Więcej ozdób (${allChoices.length - 2})`;
+    `Więcej ozdób (${allChoices.length - 3})`;
   const status = card.querySelector('.custom-status');
   status.hidden = row.decoration !== 'custom';
   status.textContent =
     row.decoration === 'custom' ? `Wybrany obraz: ${row.imageName || 'własna ozdoba'}` : '';
+  updateOrnamentControls();
 }
 
 function renderRows() {
@@ -507,17 +543,12 @@ editor.addEventListener('input', (event) => {
     // Średnica nie zmienia wzorów. Zachowaj ich wybory i obsługę kafelków.
     resized.rows = project.rows;
     project = resized;
-    for (const other of editor.querySelectorAll('[data-field^="style."]')) {
-      const v = byPath(project, other.dataset.field);
-      if (typeof v === 'number') other.value = Number(v.toFixed(3));
-    }
+    syncSliders(true);
     project.layout.columns = fitColumns(project);
     getElement('#columns').value = project.layout.columns;
   } else setPath(project, field, value);
-  if (field === 'style.color' || field === 'style.accent' || field === 'style.rodsScale')
-    renderRows();
-  if (field === 'style.rodsScale')
-    getElement('#rod-size-value').textContent = `${value.toLocaleString('pl-PL')} razy`;
+  if (field === 'style.color' || field === 'style.accent') renderRows();
+  syncSliders();
   invalidate();
 });
 

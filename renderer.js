@@ -168,29 +168,30 @@ function ensureRectFits(x0, y0, x1, y1, center, radius, message, code) {
     throw new FitError(code, message);
 }
 
-export function minimumArcSpan(text, fontMm, radius) {
-  const width = Array.from(text).reduce(
-    (sum, char) => sum + getTextMeasurements(char, fontMm).width,
-    0,
-  );
-  // Niewielki zapas pozostawia odstępy między literami po dopasowaniu.
-  return (width * 1.04 * 180) / (Math.PI * radius);
-}
-
-function curvedText(ctx, text, radius, span, center, bottom, fontMm, color) {
+function curvedText(ctx, text, radius, maxSpan, center, bottom, fontMm, color, spacing) {
   if (!text) return;
   ctx.font = `700 ${fontMm}px ${FONT}`;
   ctx.fillStyle = color;
   const chars = Array.from(text),
     widths = chars.map((char) => getTextMeasurements(char, fontMm).width);
-  const length = rad(span) * radius;
-  const tracking =
-    chars.length > 1 ? (length - widths.reduce((a, b) => a + b, 0)) / (chars.length - 1) : 0;
-  if (widths.reduce((a, b) => a + b, 0) > length + 0.01)
+  const textWidth = widths.reduce((sum, width) => sum + width, 0);
+  const availableLength = rad(maxSpan) * radius;
+  if (textWidth > availableLength + 0.01)
     throw new FitError(
       'arc-text',
-      `Napis „${text}” nie mieści się na łuku. Zmniejsz rozmiar liter lub zwiększ długość łuku.`,
+      `Napis „${text}” nie mieści się na obwodzie przy tej wielkości liter. Zmniejsz litery wokół lub skróć napis.`,
     );
+  const spacingFactor = { small: 0.12, medium: 0.35, large: 0.65 }[spacing];
+  // Krótkie słowa pozostają zwarte. Długie wykorzystują dostępny łuk,
+  // z mniejszymi odstępami; boczne symbole mają pozostawione miejsce.
+  const tracking =
+    chars.length > 1
+      ? Math.min(
+          fontMm * spacingFactor,
+          Math.max(0, (availableLength - textWidth) / (chars.length - 1)),
+        )
+      : 0;
+  const length = textWidth + tracking * (chars.length - 1);
   let cursor = chars.length === 1 ? -widths[0] / 2 : -length / 2;
   chars.forEach((char, i) => {
     const delta = (cursor + widths[i] / 2) / radius;
@@ -282,21 +283,23 @@ export function renderLabel(project, label, images = new Map(), dpi = project.dp
     ctx,
     project.top,
     style.textRadiusMm,
-    style.topSpan,
+    style.symbols ? 120 : 160,
     center,
     false,
     style.ringFontMm,
     style.color,
+    style.ringSpacing,
   );
   curvedText(
     ctx,
     project.bottom,
     style.textRadiusMm,
-    style.bottomSpan,
+    160,
     center,
     true,
     style.ringFontMm,
     style.color,
+    style.ringSpacing,
   );
   ctx.strokeStyle = style.color;
   ctx.lineWidth = style.innerWidthMm;
